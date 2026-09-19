@@ -1,1 +1,7 @@
 version = 1
+
+[[annotations]]
+path = [
+    "include/*.h",
+]
+SPDX-FileCopyrightText = "2026 The Systemd Authors"
