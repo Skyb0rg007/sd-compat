@@ -40,13 +40,9 @@ void log_set_target(LogTarget target);
 LogTarget log_get_target(void) _pure_;
 void log_settle_target(void);
 
-int log_set_max_level(int level);
 int log_get_max_level(void) _pure_;
 
 bool log_get_show_color(void) _pure_;
-bool log_get_show_location(void) _pure_;
-bool log_get_show_time(void) _pure_;
-bool log_get_show_tid(void) _pure_;
 
 /* Functions below that open and close logs or configure logging based on the
  * environment should not be called from library code — this is always a job
@@ -109,24 +105,6 @@ int log_format_iovec(
                 const char *format,
                 va_list ap) _printf_(6, 0);
 
-int log_struct_iovec_internal(
-                int level,
-                int error,
-                const char *file,
-                int line,
-                const char *func,
-                const struct iovec *input_iovec,
-                size_t n_input_iovec);
-
-/* This modifies the buffer passed! */
-int log_dump_internal(
-                int level,
-                int error,
-                const char *file,
-                int line,
-                const char *func,
-                char *buffer);
-
 #define log_dispatch(level, error, buffer)                              \
         log_dispatch_internal(level, error, PROJECT_FILE, __LINE__, __func__, NULL, NULL, NULL, NULL, buffer)
 
@@ -166,15 +144,12 @@ int log_dump_internal(
                 (void) log_full_errno_zerook(level, 0, fmt, ##__VA_ARGS__); \
         })
 
-int log_emergency_level(void);
-
 /* Normal logging */
 #define log_debug(...)     log_full(LOG_DEBUG,   __VA_ARGS__)
 #define log_info(...)      log_full(LOG_INFO,    __VA_ARGS__)
 #define log_notice(...)    log_full(LOG_NOTICE,  __VA_ARGS__)
 #define log_warning(...)   log_full(LOG_WARNING, __VA_ARGS__)
 #define log_error(...)     log_full(LOG_ERR,     __VA_ARGS__)
-#define log_emergency(...) log_full(log_emergency_level(), __VA_ARGS__)
 
 /* Logging triggered by an errno-like error */
 #define log_debug_errno(error, ...)     log_full_errno(LOG_DEBUG,   error, __VA_ARGS__)
@@ -182,7 +157,6 @@ int log_emergency_level(void);
 #define log_notice_errno(error, ...)    log_full_errno(LOG_NOTICE,  error, __VA_ARGS__)
 #define log_warning_errno(error, ...)   log_full_errno(LOG_WARNING, error, __VA_ARGS__)
 #define log_error_errno(error, ...)     log_full_errno(LOG_ERR,     error, __VA_ARGS__)
-#define log_emergency_errno(error, ...) log_full_errno(log_emergency_level(), error, __VA_ARGS__)
 
 /* This logs at the specified level the first time it is called, and then
  * logs at debug. If the specified level is debug, this logs only the first
@@ -220,10 +194,6 @@ int log_emergency_level(void);
         log_struct_internal(level, error, PROJECT_FILE, __LINE__, __func__, __VA_ARGS__, NULL)
 #define log_struct(level, ...) log_struct_errno(level, 0, __VA_ARGS__)
 
-#define log_struct_iovec_errno(level, error, iovec, n_iovec)            \
-        log_struct_iovec_internal(level, error, PROJECT_FILE, __LINE__, __func__, iovec, n_iovec)
-#define log_struct_iovec(level, iovec, n_iovec) log_struct_iovec_errno(level, 0, iovec, n_iovec)
-
 /* Like log_struct(), but with log_once() semantics */
 #define log_struct_once(level, ...)                                     \
         ({                                                              \
@@ -233,16 +203,10 @@ int log_emergency_level(void);
                         log_struct(LOG_DEBUG, __VA_ARGS__);             \
         })
 
-/* This modifies the buffer passed! */
-#define log_dump(level, buffer)                                         \
-        log_dump_internal(level, 0, PROJECT_FILE, __LINE__, __func__, buffer)
-
 #define log_oom_full(level) log_oom_internal(level, PROJECT_FILE, __LINE__, __func__)
 #define log_oom()           log_oom_full(LOG_ERR)
 #define log_oom_debug()     log_oom_full(LOG_DEBUG)
 #define log_oom_warning()   log_oom_full(LOG_WARNING)
-
-bool log_on_console(void) _pure_;
 
 /* Helper to wrap the main message in structured logging. The macro doesn't do much,
  * except to provide visual grouping of the format string and its arguments. */
@@ -284,28 +248,6 @@ int log_syntax_internal(
                 const char *func,
                 const char *format, ...) _printf_(9, 10);
 
-int log_syntax_invalid_utf8_internal(
-                const char *unit,
-                int level,
-                const char *config_file,
-                unsigned config_line,
-                const char *file,
-                int line,
-                const char *func,
-                const char *rvalue);
-
-int log_syntax_parse_error_internal(
-                const char *unit,
-                const char *config_file,
-                unsigned config_line,
-                int error,
-                bool critical, /* When true, propagate the passed error, otherwise this always returns 0. */
-                const char *file,
-                int line,
-                const char *func,
-                const char *lvalue,
-                const char *rvalue);
-
 #define log_syntax(unit, level, config_file, config_line, error, ...)   \
         ({                                                              \
                 int _level = (level), _e = (error);                     \
@@ -313,20 +255,6 @@ int log_syntax_parse_error_internal(
                         ? log_syntax_internal(unit, _level, config_file, config_line, _e, PROJECT_FILE, __LINE__, __func__, __VA_ARGS__) \
                         : -ERRNO_VALUE(_e);                             \
         })
-
-#define log_syntax_invalid_utf8(unit, level, config_file, config_line, rvalue) \
-        ({                                                              \
-                int _level = (level);                                   \
-                (log_get_max_level() >= LOG_PRI(_level))                \
-                        ? log_syntax_invalid_utf8_internal(unit, _level, config_file, config_line, PROJECT_FILE, __LINE__, __func__, rvalue) \
-                        : -EINVAL;                                      \
-        })
-
-#define log_syntax_parse_error_full(unit, config_file, config_line, error, critical, lvalue, rvalue) \
-        log_syntax_parse_error_internal(unit, config_file, config_line, error, critical, PROJECT_FILE, __LINE__, __func__, lvalue, rvalue)
-
-#define log_syntax_parse_error(unit, config_file, config_line, error, lvalue, rvalue) \
-        log_syntax_parse_error_full(unit, config_file, config_line, error, /* critical= */ false, lvalue, rvalue)
 
 #define DEBUG_LOGGING _unlikely_(log_get_max_level() >= LOG_DEBUG)
 

@@ -140,7 +140,6 @@ int cg_pid_get_owner_uid(pid_t pid, uid_t *ret_uid);
 
 int cg_path_decode_unit(const char *cgroup, char **ret_unit);
 
-bool cg_needs_escape(const char *p) _pure_;
 char* cg_unescape(const char *p) _pure_;
 
 DECLARE_STRING_TABLE_LOOKUP(cgroup_controller, CGroupController);

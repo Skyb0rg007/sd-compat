@@ -11,18 +11,6 @@ typedef enum ReplaceEnvFlags {
         REPLACE_ENV_ALLOW_EXTENDED  = 1 << 2,
 } ReplaceEnvFlags;
 
-char** strv_env_clean_with_callback(char **l, void (*invalid_callback)(const char *p, void *userdata), void *userdata);
-#define strv_env_clean(l) strv_env_clean_with_callback(l, NULL, NULL)
-
-char** _strv_env_merge(char **first, ...);
-#define strv_env_merge(first, ...) _strv_env_merge(first, __VA_ARGS__, POINTER_MAX)
-
-char** strv_env_unset_many_internal(char **l, ...) _sentinel_;
-#define strv_env_unset_many(l, ...) strv_env_unset_many_internal(l, __VA_ARGS__, NULL)
-int _strv_env_assign_many(char ***l, ...) _sentinel_;
-#define strv_env_assign_many(l, ...) _strv_env_assign_many(l, __VA_ARGS__, NULL)
-
-char* strv_env_pairs_get(char **l, const char *name) _pure_;
 int strv_env_get_merged(char **l, char ***ret);
 
 int getenv_bool(const char *p);

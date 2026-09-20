@@ -317,8 +317,6 @@ DECLARE_STRING_TABLE_LOOKUP(unit_load_state, UnitLoadState);
 DECLARE_STRING_TABLE_LOOKUP(unit_active_state, UnitActiveState);
 
 DECLARE_STRING_TABLE_LOOKUP(freezer_state, FreezerState);
-FreezerState freezer_state_finish(FreezerState state) _const_;
-FreezerState freezer_state_objective(FreezerState state) _const_;
 
 DECLARE_STRING_TABLE_LOOKUP(unit_marker, UnitMarker);
 DECLARE_STRING_TABLE_LOOKUP(automount_state, AutomountState);
@@ -336,4 +334,3 @@ DECLARE_STRING_TABLE_LOOKUP(unit_dependency, UnitDependency);
 DECLARE_STRING_TABLE_LOOKUP(notify_access, NotifyAccess);
 DECLARE_STRING_TABLE_LOOKUP(job_mode, JobMode);
 DECLARE_STRING_TABLE_LOOKUP(exec_directory_type, ExecDirectoryType);
-

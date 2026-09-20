@@ -57,12 +57,6 @@ DECLARE_STRING_TABLE_LOOKUP(socket_address_type, int);
 
 int sockaddr_un_unlink(const struct sockaddr_un *sa);
 
-bool socket_address_can_accept(const SocketAddress *a) _pure_;
-
-int socket_address_verify(const SocketAddress *a, bool strict) _pure_;
-
-bool socket_address_equal(const SocketAddress *a, const SocketAddress *b) _pure_;
-
 int sockaddr_port(const struct sockaddr *_sa, unsigned *port);
 
 int sockaddr_pretty(const struct sockaddr *_sa, socklen_t salen, bool translate_ipv6, bool include_port, char **ret);
@@ -86,9 +80,6 @@ typedef enum {
         IFNAME_VALID_SPECIAL     = 1 << 2, /* Allow the special names "all" and "default" */
         _IFNAME_VALID_ALL        = IFNAME_VALID_ALTERNATIVE | IFNAME_VALID_NUMERIC | IFNAME_VALID_SPECIAL,
 } IfnameValidFlags;
-bool ifname_valid_char(char a) _const_;
-bool ifname_valid_full(const char *p, IfnameValidFlags flags) _pure_;
-bool address_label_valid(const char *p) _pure_;
 
 int getpeercred(int fd, struct ucred *ucred);
 int getpeersec(int fd, char **ret);
@@ -122,15 +113,10 @@ ssize_t receive_one_fd_iov(int transport_fd, struct iovec *iov, size_t iovlen, i
         })
 
 struct cmsghdr* cmsg_find(struct msghdr *mh, int level, int type, socklen_t length);
-void* cmsg_find_and_copy_data(struct msghdr *mh, int level, int type, void *buf, size_t buf_len);
 
 /* Type-safe, dereferencing version of cmsg_find() */
 #define CMSG_FIND_DATA(mh, level, type, ctype)                          \
         CMSG_TYPED_DATA(cmsg_find(mh, level, type, CMSG_LEN(sizeof(ctype))), ctype)
-
-/* Type-safe version of cmsg_find_and_copy_data() */
-#define CMSG_FIND_AND_COPY_DATA(mh, level, type, ctype)             \
-        (ctype*) cmsg_find_and_copy_data(mh, level, type, &(ctype){}, sizeof(ctype))
 
 /* Resolves to a type that can carry cmsghdr structures. Make sure things are properly aligned, i.e. the type
  * itself is placed properly in memory and the size is also aligned to what's appropriate for "cmsghdr"

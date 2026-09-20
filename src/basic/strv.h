@@ -7,12 +7,6 @@
 
 char* strv_find(char * const *l, const char *name) _pure_;
 char* strv_find_case(char * const *l, const char *name) _pure_;
-char* strv_find_prefix(char * const *l, const char *name) _pure_;
-char* strv_find_startswith(char * const *l, const char *name) _pure_;
-char* strv_find_closest(char * const *l, const char *name) _pure_;
-/* Given two vectors, the first a list of keys and the second a list of key-value pairs, returns the value
- * of the first key from the first vector that is found in the second vector. */
-char* strv_find_first_field(char * const *needles, char * const *haystack) _pure_;
 
 #define strv_contains(l, s) (!!strv_find((l), (s)))
 #define strv_contains_case(l, s) (!!strv_find_case((l), (s)))
@@ -50,10 +44,6 @@ int strv_extend_many_internal(char ***l, const char *value, ...);
 int strv_extendf_with_size(char ***l, size_t *n, const char *format, ...) _printf_(3,4);
 #define strv_extendf(l, ...) strv_extendf_with_size(l, NULL, __VA_ARGS__)
 
-int strv_extend_joined_with_size_sentinel(char ***l, size_t *n, ...) _sentinel_;
-#define strv_extend_joined_with_size(l, n, ...) strv_extend_joined_with_size_sentinel(l, n, __VA_ARGS__, NULL)
-#define strv_extend_joined(l, ...) strv_extend_joined_with_size(l, NULL, __VA_ARGS__)
-
 int strv_push_with_size(char ***l, size_t *n, char *value);
 
 int strv_insert(char ***l, size_t position, char *value);
@@ -71,14 +61,11 @@ int strv_consume_prepend(char ***l, char *value);
 
 char** strv_remove(char **l, const char *s);
 char** strv_uniq(char **l);
-bool strv_is_uniq(char * const *l) _pure_;
 
 int strv_compare(char * const *a, char * const *b) _pure_;
 static inline bool strv_equal(char * const *a, char * const *b) {
         return strv_compare(a, b) == 0;
 }
-
-bool strv_equal_ignore_order(char * const *a, char * const *b) _pure_;
 
 char** strv_new_internal(const char *x, ...) _sentinel_;
 char** strv_new_ap(const char *x, va_list ap);
@@ -101,8 +88,6 @@ char* strv_join_full(char * const *l, const char *separator, const char *prefix)
 static inline char *strv_join(char * const *l, const char *separator) {
         return strv_join_full(l, separator, NULL);
 }
-
-bool strv_overlap(char * const *a, char * const *b) _pure_;
 
 #define _STRV_FOREACH_BACKWARDS(s, l, h, i)                             \
         for (typeof(*(l)) *s, *h = (l), *i = ({                         \

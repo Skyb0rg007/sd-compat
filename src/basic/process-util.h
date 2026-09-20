@@ -78,10 +78,6 @@ static inline void* PID_TO_PTR(pid_t pid) {
         return (void*) ((uintptr_t) pid);
 }
 
-bool nice_is_valid(int n) _const_;
-
-bool sched_policy_is_valid(int policy) _const_;
-
 #define PID_AUTOMATIC ((pid_t) INT_MIN) /* special value indicating "acquire pid from connection peer" */
 
 static inline bool pid_is_valid(pid_t p) {

@@ -6,8 +6,6 @@
 #include "errno-util.h"
 #include "forward.h"
 
-bool id128_is_valid(const char *s) _pure_;
-
 typedef enum Id128Flag {
         ID128_FORMAT_PLAIN  = 1 << 0,  /* formatted as 32 hex chars as-is */
         ID128_FORMAT_UUID   = 1 << 1,  /* formatted as 36 character uuid string */
@@ -23,7 +21,6 @@ static inline int id128_read(const char *path, Id128Flag f, sd_id128_t *ret) {
         return id128_read_at(AT_FDCWD, path, f, ret);
 }
 
-int id128_compare_func(const sd_id128_t *a, const sd_id128_t *b) _pure_;
 extern const struct hash_ops id128_hash_ops;
 extern const struct hash_ops id128_hash_ops_free;
 

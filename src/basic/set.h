@@ -11,8 +11,6 @@ static inline Set* set_free(Set *s) {
         return (Set*) _hashmap_free(HASHMAP_BASE(s));
 }
 
-#define set_copy(s) ((Set*) _hashmap_copy(HASHMAP_BASE(s)))
-
 int set_ensure_allocated(Set **s, const struct hash_ops *hash_ops);
 
 int set_put(Set *s, const void *key);
@@ -30,10 +28,6 @@ static inline void *set_remove(Set *s, const void *key) {
 /* no set_remove2 */
 /* no set_remove_value */
 /* no set_remove_and_replace */
-
-static inline int set_move_one(Set *s, Set *other, const void *key) {
-        return _hashmap_move_one(HASHMAP_BASE(s), HASHMAP_BASE(other), key);
-}
 
 static inline unsigned set_size(const Set *s) {
         return _hashmap_size(HASHMAP_BASE((Set *) s));
@@ -60,23 +54,11 @@ int set_ensure_put(Set **s, const struct hash_ops *hash_ops, const void *key);
 
 int set_consume(Set *s, void *value);
 
-int set_put_strndup_full(Set **s, const struct hash_ops *hash_ops, const char *p, size_t n);
-#define set_put_strdup_full(s, hash_ops, p) set_put_strndup_full(s, hash_ops, p, SIZE_MAX)
-#define set_put_strndup(s, p, n) set_put_strndup_full(s, &string_hash_ops_free, p, n)
-#define set_put_strdup(s, p) set_put_strndup(s, p, SIZE_MAX)
-
-int set_put_strdupv_full(Set **s, const struct hash_ops *hash_ops, char **l);
-#define set_put_strdupv(s, l) set_put_strdupv_full(s, &string_hash_ops_free, l)
-
 #define _SET_FOREACH(e, s, i) \
         for (Iterator i = ITERATOR_FIRST; set_iterate((s), &i, (void**)&(e)); )
 #define SET_FOREACH(e, s) \
         _SET_FOREACH(e, s, UNIQ_T(i, UNIQ))
 
-#define SET_FOREACH_MOVE(e, d, s)                                       \
-        for (; ({ e = set_first(s); assert_se(!e || set_move_one(d, s, e) >= 0); e; }); )
-
 DEFINE_TRIVIAL_CLEANUP_FUNC(Set*, set_free);
 
 #define _cleanup_set_free_ _cleanup_(set_freep)
-

@@ -6,8 +6,6 @@
 extern int saved_argc;
 extern char **saved_argv;
 
-bool invoked_by_systemd(void) _const_;
-
 int rename_process_full(const char *comm, const char *invocation);
 static inline int rename_process(const char *name) {
         return rename_process_full(name, name);

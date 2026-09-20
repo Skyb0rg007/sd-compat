@@ -107,5 +107,4 @@ void devt_hash_func(const dev_t *p, struct siphash *state);
 #define devt_hash_func uint64_hash_func
 #endif
 
-int devt_compare_func(const dev_t *a, const dev_t *b) _pure_;
 extern const struct hash_ops devt_hash_ops;

@@ -110,34 +110,20 @@ static inline bool triple_timestamp_is_set(const triple_timestamp *ts) {
 usec_t triple_timestamp_by_clock(triple_timestamp *ts, clockid_t clock);
 
 usec_t timespec_load(const struct timespec *ts) _pure_;
-nsec_t timespec_load_nsec(const struct timespec *ts) _pure_;
 struct timespec* timespec_store(struct timespec *ts, usec_t u);
-struct timespec* timespec_store_nsec(struct timespec *ts, nsec_t n);
 
 #define TIMESPEC_STORE(u) timespec_store(&(struct timespec) {}, (u))
-#define TIMESPEC_STORE_NSEC(n) timespec_store_nsec(&(struct timespec) {}, (n))
 
-usec_t timeval_load(const struct timeval *tv) _pure_;
 struct timeval* timeval_store(struct timeval *tv, usec_t u);
 
 #define TIMEVAL_STORE(u) timeval_store(&(struct timeval) {}, (u))
 
 char* format_timestamp_style(char *buf, size_t l, usec_t t, TimestampStyle style) _warn_unused_result_;
-char* format_timestamp_relative_full(char *buf, size_t l, usec_t t, clockid_t clock, bool implicit_left) _warn_unused_result_;
 char* format_timespan(char *buf, size_t l, usec_t t, usec_t accuracy) _warn_unused_result_;
 
 /* Returns the abbreviated English weekday name for wd in Mon=0 … Sun=6 order
  * (matching systemd's weekdays_bits layout). */
 const char* weekday_to_string(int i);
-
-_warn_unused_result_
-static inline char* format_timestamp_relative(char *buf, size_t l, usec_t t) {
-        return format_timestamp_relative_full(buf, l, t, CLOCK_REALTIME, /* implicit_left= */ false);
-}
-_warn_unused_result_
-static inline char* format_timestamp_relative_monotonic(char *buf, size_t l, usec_t t) {
-        return format_timestamp_relative_full(buf, l, t, CLOCK_MONOTONIC, /* implicit_left= */ false);
-}
 
 _warn_unused_result_
 static inline char* format_timestamp(char *buf, size_t l, usec_t t) {
@@ -148,22 +134,12 @@ static inline char* format_timestamp(char *buf, size_t l, usec_t t) {
  * see C11 §6.5.2.5, and
  * https://stackoverflow.com/questions/34880638/compound-literal-lifetime-and-if-blocks */
 #define FORMAT_TIMESTAMP(t) format_timestamp((char[FORMAT_TIMESTAMP_MAX]){}, FORMAT_TIMESTAMP_MAX, t)
-#define FORMAT_TIMESTAMP_RELATIVE(t)                                    \
-        format_timestamp_relative((char[FORMAT_TIMESTAMP_RELATIVE_MAX]){}, FORMAT_TIMESTAMP_RELATIVE_MAX, t)
-#define FORMAT_TIMESTAMP_RELATIVE_MONOTONIC(t)                          \
-        format_timestamp_relative_monotonic((char[FORMAT_TIMESTAMP_RELATIVE_MAX]){}, FORMAT_TIMESTAMP_RELATIVE_MAX, t)
 #define FORMAT_TIMESPAN(t, accuracy) format_timespan((char[FORMAT_TIMESPAN_MAX]){}, FORMAT_TIMESPAN_MAX, t, accuracy)
 #define FORMAT_TIMESTAMP_STYLE(t, style) \
         format_timestamp_style((char[FORMAT_TIMESTAMP_MAX]){}, FORMAT_TIMESTAMP_MAX, t, style)
 
 int parse_sec(const char *t, usec_t *ret);
 int parse_time(const char *t, usec_t *ret, usec_t default_unit);
-
-void reset_timezonep(char **p);
-char* save_timezone(void);
-#define SAVE_TIMEZONE                                                   \
-        _unused_ _cleanup_(reset_timezonep)                             \
-             char *_saved_timezone_ = save_timezone()
 
 bool clock_supported(clockid_t clock);
 

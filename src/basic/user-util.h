@@ -20,12 +20,6 @@
 #define MAP_UID_MIN ((uid_t) 60514)
 #define MAP_UID_MAX ((uid_t) 60577)
 
-/* A helper to print an error message when user or group resolution fails. */
-const char* strerror_user(int errnum, char *buf, size_t buflen);
-#define STRERROR_USER(errnum) strerror_user(errnum, (char[ERRNO_BUF_LEN]){}, ERRNO_BUF_LEN)
-const char* strerror_group(int errnum, char *buf, size_t buflen);
-#define STRERROR_GROUP(errnum) strerror_group(errnum, (char[ERRNO_BUF_LEN]){}, ERRNO_BUF_LEN)
-
 static inline bool ERRNO_IS_NEG_BAD_ACCOUNT(intmax_t r) {
         return IN_SET(r,
                       -ESRCH,
@@ -46,9 +40,6 @@ static inline int parse_gid(const char *s, gid_t *ret_gid) {
 }
 
 char* getusername_malloc(void);
-
-bool is_nologin_shell(const char *shell) _pure_;
-bool shell_is_placeholder(const char *shell) _pure_;
 
 typedef enum UserCredsFlags {
         USER_CREDS_PREFER_NSS           = 1 << 0,  /* if set, only synthesize user records if database lacks them. Normally we bypass the userdb entirely for the records we can synthesize */
@@ -145,4 +136,3 @@ int lookup_pwent_in_files(
                 struct passwd **ret);
 
 int getpwuid_malloc(uid_t uid, struct passwd **ret);
-

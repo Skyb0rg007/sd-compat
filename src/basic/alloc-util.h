@@ -154,19 +154,12 @@ static inline size_t GREEDY_ALLOC_ROUND_UP(size_t l) {
 
 void* greedy_realloc(void **p, size_t need, size_t size);
 void* greedy_realloc0(void **p, size_t need, size_t size);
-void* greedy_realloc_append(void **p, size_t *n_p, const void *from, size_t n_from, size_t size);
 
 #define GREEDY_REALLOC(array, need)                                     \
         greedy_realloc((void**) &(array), (need), sizeof((array)[0]))
 
 #define GREEDY_REALLOC0(array, need)                                    \
         greedy_realloc0((void**) &(array), (need), sizeof((array)[0]))
-
-#define GREEDY_REALLOC_APPEND(array, n_array, from, n_from)             \
-        ({                                                              \
-                const typeof(*(array)) *_from_ = (from);                \
-                greedy_realloc_append((void**) &(array), &(n_array), _from_, (n_from), sizeof((array)[0])); \
-        })
 
 #define alloca0(n)                                      \
         ({                                              \

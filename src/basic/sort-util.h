@@ -3,27 +3,6 @@
 
 #include "forward.h"
 
-void *xbsearch_r(const void *key, const void *base, size_t nmemb, size_t size,
-                 comparison_userdata_fn_t compar, void *arg);
-
-#define typesafe_bsearch_r(k, b, n, func, userdata)                     \
-        ({                                                              \
-                const typeof((b)[0]) *_k = k;                           \
-                int (*_func_)(const typeof((b)[0])*, const typeof((b)[0])*, typeof(userdata)) = func; \
-                (typeof((b)[0])*) xbsearch_r((const void*) _k, (b), (n), sizeof((b)[0]), (comparison_userdata_fn_t) _func_, userdata); \
-        })
-
-void* bsearch_safe_internal(const void *key, const void *base, size_t nmemb, size_t size, comparison_fn_t compar);
-#define bsearch_safe(key, base, nmemb, size, compar) \
-        const_generic((base), bsearch_safe_internal(key, base, nmemb, size, compar))
-
-#define typesafe_bsearch(k, b, n, func)                                 \
-        ({                                                              \
-                const typeof((b)[0]) *_k = k;                           \
-                int (*_func_)(const typeof((b)[0])*, const typeof((b)[0])*) = func; \
-                (typeof((b)[0])*) bsearch_safe((const void*) _k, (b), (n), sizeof((b)[0]), (comparison_fn_t) _func_); \
-        })
-
 void qsort_safe(void *base, size_t nmemb, size_t size, comparison_fn_t compar);
 
 /* A wrapper around the above, but that adds typesafety: the element size is automatically derived from the type and so

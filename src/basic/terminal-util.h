@@ -70,10 +70,6 @@ typedef enum GetCompletionsFlags {
 } GetCompletionsFlags;
 
 typedef int (*GetCompletionsCallback)(const char *key, GetCompletionsFlags flags, char ***ret_list, void *userdata);
-int ask_string_full(char **ret, const char *prefill, GetCompletionsCallback get_completions, void *userdata, const char *text, ...) _printf_(5, 6);
-#define ask_string(ret, text, ...) ask_string_full(ret, NULL, NULL, NULL, text, ##__VA_ARGS__)
-
-bool tty_is_console(const char *tty) _pure_;
 
 unsigned lines(void);
 
@@ -104,17 +100,7 @@ typedef struct TermiosResetContext {
         struct termios *termios;
 } TermiosResetContext;
 
-void termios_reset(const TermiosResetContext *c);
-
-#define CLEANUP_TERMIOS_RESET(_fd, _termios)                                   \
-        _cleanup_(termios_reset) _unused_ const TermiosResetContext            \
-                CONCATENATE(_cleanup_termios_, UNIQ) = {                       \
-                        .fd = &(_fd),                                          \
-                        .termios = &(_termios),                                \
-                }
-
 /* The $TERM value we use for terminals other than the Linux console */
 #define FALLBACK_TERM "vt220"
 
 #define VTNR_MAX 63
-

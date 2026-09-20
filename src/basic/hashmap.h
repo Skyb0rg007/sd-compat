@@ -67,10 +67,6 @@ static inline OrderedHashmap* ordered_hashmap_free(OrderedHashmap *h) {
         return (void*) _hashmap_free(HASHMAP_BASE(h));
 }
 
-IteratedCache* iterated_cache_free(IteratedCache *cache);
-
-HashmapBase* _hashmap_copy(HashmapBase *h);
-
 int hashmap_ensure_allocated(Hashmap **h, const struct hash_ops *hash_ops);
 int hashmap_ensure_put(Hashmap **h, const struct hash_ops *hash_ops, const void *key, void *value);
 int ordered_hashmap_ensure_allocated(OrderedHashmap **h, const struct hash_ops *hash_ops);
@@ -105,15 +101,7 @@ static inline void *ordered_hashmap_remove(OrderedHashmap *h, const void *key) {
         return _hashmap_remove(HASHMAP_BASE(h), key);
 }
 
-/* Since merging data from an OrderedHashmap into a Hashmap or vice-versa
- * should just work, allow this by having looser type-checking here. */
-int _hashmap_merge(Hashmap *h, Hashmap *other);
-#define hashmap_merge(h, other) _hashmap_merge(PLAIN_HASHMAP(h), PLAIN_HASHMAP(other))
-#define ordered_hashmap_merge(h, other) hashmap_merge(h, other)
-
 /* Unlike hashmap_merge, hashmap_move does not allow mixing the types. */
-
-int _hashmap_move_one(HashmapBase *h, HashmapBase *other, const void *key);
 
 unsigned _hashmap_size(HashmapBase *h) _pure_;
 static inline unsigned hashmap_size(Hashmap *h) {
@@ -129,8 +117,6 @@ static inline bool hashmap_isempty(Hashmap *h) {
 static inline bool ordered_hashmap_isempty(OrderedHashmap *h) {
         return ordered_hashmap_size(h) == 0;
 }
-
-unsigned _hashmap_buckets(HashmapBase *h) _pure_;
 
 bool _hashmap_iterate(HashmapBase *h, Iterator *i, void **value, const void **key);
 static inline bool hashmap_iterate(Hashmap *h, Iterator *i, void **value, const void **key) {
@@ -225,9 +211,5 @@ DEFINE_TRIVIAL_CLEANUP_FUNC(OrderedHashmap*, ordered_hashmap_free);
 
 #define _cleanup_hashmap_free_ _cleanup_(hashmap_freep)
 #define _cleanup_ordered_hashmap_free_ _cleanup_(ordered_hashmap_freep)
-
-DEFINE_TRIVIAL_CLEANUP_FUNC(IteratedCache*, iterated_cache_free);
-
-#define _cleanup_iterated_cache_free_ _cleanup_(iterated_cache_freep)
 
 void hashmap_trim_pools(void);

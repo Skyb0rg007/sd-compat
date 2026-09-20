@@ -76,9 +76,6 @@ sd_char *startswith_no_case_internal(const sd_char *s, const sd_char *prefix) _p
 sd_char *endswith_internal(const sd_char *s, const sd_char *suffix) _pure_;
 #define endswith(s, suffix) const_generic(s, endswith_internal(s, suffix))
 
-sd_char *endswith_no_case_internal(const sd_char *s, const sd_char *suffix) _pure_;
-#define endswith_no_case(s, suffix) const_generic(s, endswith_no_case_internal(s, suffix))
-
 static inline bool isempty(const sd_char *a) {
         return !a || a[0] == '\0';
 }

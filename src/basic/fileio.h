@@ -62,8 +62,6 @@ static inline int read_full_stream(FILE *f, char **ret_contents, size_t *ret_siz
 
 int get_proc_field(const char *path, const char *key, char **ret);
 
-DIR* xopendirat(int dir_fd, const char *path, int flags);
-
 typedef enum XfopenFlags {
         XFOPEN_UNLOCKED = 1 << 0, /* call __fsetlocking(FSETLOCKING_BYCALLER) after opened */
         XFOPEN_SOCKET   = 1 << 1, /* also try to open unix socket */
@@ -115,4 +113,3 @@ typedef enum WriteDataFileFlags {
         WRITE_DATA_FILE_MKDIR_0755 = 1 << 0,
         WRITE_DATA_FILE_MODE_0400  = 1 << 1,
 } WriteDataFileFlags;
-

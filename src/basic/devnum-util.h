@@ -37,10 +37,6 @@ int device_path_make_canonical(mode_t mode, dev_t devnum, char **ret);
 #define DEVNUM_FORMAT_STR "%u:%u"
 #define DEVNUM_FORMAT_VAL(d) major(d), minor(d)
 
-char *format_devnum(dev_t d, char buf[static DEVNUM_STR_MAX]);
-
-#define FORMAT_DEVNUM(d) format_devnum((d), (char[DEVNUM_STR_MAX]) {})
-
 static inline bool devnum_is_zero(dev_t d) {
         return major(d) == 0 && minor(d) == 0;
 }

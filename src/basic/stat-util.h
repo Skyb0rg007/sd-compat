@@ -21,9 +21,6 @@ int stat_verify_socket(const struct stat *st);
 int statx_verify_socket(const struct statx *stx);
 int fd_verify_socket(int fd);
 
-bool stat_may_be_dev_null(struct stat *st) _pure_;
-bool stat_is_empty(struct stat *st) _pure_;
-
 typedef enum XStatXFlags {
         XSTATX_MNT_ID_BEST = 1 << 0, /* Like STATX_MNT_ID_UNIQUE if available, STATX_MNT_ID otherwise */
 } XStatXFlags;
@@ -68,9 +65,6 @@ static inline int path_is_fs_type(const char *path, statfs_f_type_t magic_value)
         return is_fs_type_at(AT_FDCWD, path, magic_value);
 }
 
-bool is_temporary_fs(const struct statfs *s) _pure_;
-bool is_network_fs(const struct statfs *s) _pure_;
-
 /* Because statfs.t_type can be int on some architectures, we have to cast
  * the const magic to the type, otherwise the compiler warns about
  * signed/unsigned comparison, because the magic can be 32 bit unsigned.
@@ -85,9 +79,6 @@ bool statx_inode_same(const struct statx *a, const struct statx *b);
 int statx_mount_same(const struct statx *a, const struct statx *b);
 
 int xstatfsat(int dir_fd, const char *path, struct statfs *ret);
-
-usec_t statx_timestamp_load(const struct statx_timestamp *ts) _pure_;
-nsec_t statx_timestamp_load_nsec(const struct statx_timestamp *ts) _pure_;
 
 /* This compares inode number, backing device and inode type, but not modification info */
 extern const struct hash_ops inode_hash_ops;
@@ -109,4 +100,3 @@ static inline bool stat_is_set(const struct stat *st) {
 static inline bool statx_is_set(const struct statx *sx) {
         return sx && sx->stx_mask != 0;
 }
-

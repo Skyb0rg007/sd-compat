@@ -6,7 +6,6 @@
 char octchar(int x) _const_;
 int unoctchar(char c) _const_;
 
-char decchar(int x) _const_;
 int undecchar(char c) _const_;
 
 char hexchar(int x) _const_;
@@ -16,10 +15,8 @@ char* hexmem(const void *p, size_t l) _nonnull_if_nonzero_(1, 2);
 int unhexmem_full(const char *p, size_t l, bool secure, void **ret_data, size_t *ret_size) _nonnull_if_nonzero_(1, 2);
 
 char base32hexchar(int x) _const_;
-int unbase32hexchar(char c) _const_;
 
 char base64char(int x) _const_;
-char urlsafe_base64char(int x) _const_;
 int unbase64char(char c) _const_;
 
 char* base32hexmem(const void *p, size_t l, bool padding) _nonnull_if_nonzero_(1, 2);
@@ -33,4 +30,3 @@ int unbase64mem_full(const char *p, size_t l, bool secure, void **ret_data, size
 static inline int unbase64mem(const char *p, void **ret_data, size_t *ret_size) {
         return unbase64mem_full(p, SIZE_MAX, false, ret_data, ret_size);
 }
-

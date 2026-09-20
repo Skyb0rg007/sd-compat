@@ -34,8 +34,6 @@ static inline bool colors_enabled(void) {
 
 ColorMode parse_systemd_colors(void);
 
-bool underline_enabled(void);
-
 /* Regular colors */
 #define ANSI_BLACK   "\x1B[0;30m" /* Some type of grey usually. */
 #define ANSI_RED     "\x1B[0;31m"
@@ -160,53 +158,3 @@ DEFINE_ANSI_FUNC(highlight_white,       HIGHLIGHT_WHITE);
 static inline const char* ansi_highlight_green_red(bool b) {
         return b ? ansi_highlight_green() : ansi_highlight_red();
 }
-
-static inline const char* ansi_underline(void) {
-        return underline_enabled() ? ANSI_UNDERLINE : "";
-}
-
-static inline const char* ansi_add_underline(void) {
-        return underline_enabled() ? ANSI_ADD_UNDERLINE : "";
-}
-
-static inline const char* ansi_add_underline_grey(void) {
-        return underline_enabled() ?
-                (colors_enabled() ? ANSI_ADD_UNDERLINE_GREY : ANSI_ADD_UNDERLINE) : "";
-}
-
-static inline const char* ansi_italics(void) {
-        /* We hook italics also into the underline checks, close enough */
-        return underline_enabled() ? ANSI_ITALICS : "";
-}
-
-static inline const char* ansi_add_italics(void) {
-        return underline_enabled() ? ANSI_ADD_ITALICS : "";
-}
-
-#define DEFINE_ANSI_FUNC_UNDERLINE(name, NAME)                          \
-        static inline const char* ansi_##name##_underline(void) {       \
-                return underline_enabled() ? ANSI_##NAME##_UNDERLINE :  \
-                        ansi_##name();                                  \
-        }
-
-#define DEFINE_ANSI_FUNC_UNDERLINE_256(name, NAME, FALLBACK)                                            \
-        static inline const char* ansi_##name##_underline(void) {                                       \
-                if (!underline_enabled())                                                               \
-                        return ansi_##name();                                                           \
-                                                                                                        \
-                switch (get_color_mode()) {                                                             \
-                        case COLOR_OFF: return "";                                                      \
-                        case COLOR_16: return ANSI_##FALLBACK##_UNDERLINE;                              \
-                        case COLOR_256: return ANSI_##FALLBACK##_UNDERLINE ANSI_##NAME##_UNDERLINE;     \
-                        default: return ANSI_##NAME##_UNDERLINE;                                        \
-                }                                                                                       \
-        }
-
-DEFINE_ANSI_FUNC_UNDERLINE(highlight,             HIGHLIGHT);
-DEFINE_ANSI_FUNC_UNDERLINE(highlight_red,         HIGHLIGHT_RED);
-DEFINE_ANSI_FUNC_UNDERLINE(highlight_green,       HIGHLIGHT_GREEN);
-DEFINE_ANSI_FUNC_UNDERLINE_256(highlight_yellow,  HIGHLIGHT_YELLOW, HIGHLIGHT_YELLOW_FALLBACK);
-DEFINE_ANSI_FUNC_UNDERLINE(highlight_blue,        HIGHLIGHT_BLUE);
-DEFINE_ANSI_FUNC_UNDERLINE(highlight_magenta,     HIGHLIGHT_MAGENTA);
-DEFINE_ANSI_FUNC_UNDERLINE_256(grey,              GREY, BRIGHT_BLACK);
-DEFINE_ANSI_FUNC_UNDERLINE_256(highlight_grey,    HIGHLIGHT_GREY, HIGHLIGHT_GREY_FALLBACK);

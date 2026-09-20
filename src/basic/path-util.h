@@ -17,8 +17,6 @@
 
 const char* default_PATH(void);
 
-bool is_path(const char *p) _pure_;
-
 static inline bool path_is_absolute(const char *p) {
         if (!p) /* A NULL pointer is definitely not an absolute path */
                 return false;
@@ -61,12 +59,6 @@ static inline char* path_simplify(char *path) {
 }
 
 int path_simplify_alloc(const char *path, char **ret);
-
-/* Note: the search terminates on the first NULL item. */
-#define PATH_IN_SET(p, ...) path_strv_contains(STRV_MAKE(__VA_ARGS__), p)
-
-char* path_startswith_strv(const char *p, char * const *strv);
-#define PATH_STARTSWITH_SET(p, ...) path_startswith_strv(p, STRV_MAKE(__VA_ARGS__))
 
 int path_strv_make_absolute_cwd(char **l);
 
@@ -115,20 +107,8 @@ static inline bool path_is_safe(const char *p) {
 }
 bool path_is_normalized(const char *p) _pure_;
 
-bool hidden_or_backup_file(const char *filename) _pure_;
-
-bool is_device_path(const char *path) _pure_;
-
-bool valid_device_node_path(const char *path) _pure_;
-bool valid_device_allow_pattern(const char *path) _pure_;
-
 bool dot_or_dot_dot(const char *path) _pure_;
-
-bool path_implies_directory(const char *path) _pure_;
 
 bool empty_or_root(const char *path) _pure_;
 const char* empty_to_root(const char *path) _pure_;
 int empty_or_root_harder_to_null(const char **path);
-
-bool path_strv_contains(char * const *l, const char *path);
-

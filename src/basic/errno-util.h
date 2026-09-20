@@ -15,10 +15,6 @@
  * Note that we use the GNU variant of strerror_r() here. */
 #define STRERROR(errnum) strerror_r(ABS(errnum), (char[ERRNO_BUF_LEN]){}, ERRNO_BUF_LEN)
 
-/* A helper to print an error message or message for functions that return 0 on EOF. */
-const char* strerror_or_eof(int errnum, char *buf, size_t buflen);
-#define STRERROR_OR_EOF(errnum) strerror_or_eof(errnum, (char[ERRNO_BUF_LEN]){}, ERRNO_BUF_LEN)
-
 static inline void _reset_errno_(int *saved_errno) {
         if (*saved_errno < 0) /* Invalidated by UNPROTECT_ERRNO? */
                 return;

@@ -5,14 +5,6 @@
 
 #include "forward.h"
 
-int dlsym_many_or_warn_sentinel(void *dl, int log_level, ...) _sentinel_;
-int dlopen_many_sym_or_warn_sentinel(void **dlp, const char *filename, int log_level, ...) _sentinel_;
-
-#define dlsym_many_or_warn(dl, log_level, ...) \
-        dlsym_many_or_warn_sentinel(dl, log_level, __VA_ARGS__, NULL)
-#define dlopen_many_sym_or_warn(dlp, filename, log_level, ...) \
-        dlopen_many_sym_or_warn_sentinel(dlp, filename, log_level, __VA_ARGS__, NULL)
-
 #define DLSYM_PROTOTYPE(symbol)                \
         typeof(symbol)* sym_##symbol
 
@@ -44,4 +36,3 @@ int dlopen_many_sym_or_warn_sentinel(void **dlp, const char *filename, int log_l
  * dlopen(), just those through our dlopen_safe() wrapper (which we use comprehensively in our
  * codebase). This hence has *no* effect on NSS. (Would be great if we could change that...) */
 void block_dlopen(void);
-

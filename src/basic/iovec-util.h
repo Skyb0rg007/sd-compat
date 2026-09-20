@@ -38,6 +38,3 @@ struct iovec* iovec_make_string(struct iovec *iovec, const char *s);
         })
 
 void iovec_array_free(struct iovec *iovec, size_t n_iovec) _nonnull_if_nonzero_(1, 2);
-
-int iovec_memcmp(const struct iovec *a, const struct iovec *b) _pure_;
-

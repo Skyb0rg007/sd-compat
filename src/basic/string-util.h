@@ -97,12 +97,6 @@ static inline char* skip_leading_chars(const char *s, const char *bad) {
         return (char*) s + strspn(s, bad);
 }
 
-char ascii_tolower(char x) _const_;
-
-char ascii_toupper(char x) _const_;
-
-bool chars_intersect(const char *a, const char *b) _pure_;
-
 static inline bool _pure_ in_charset(const char *s, const char *charset) {
         assert(s);
         assert(charset);
@@ -201,9 +195,6 @@ typedef enum MakeCStringMode {
 
 int make_cstring(const void *s, size_t n, MakeCStringMode mode, char **ret);
 
-size_t strspn_from_end(const char *str, const char *accept) _pure_;
-size_t strnspn(const char *str, const char *accept, size_t n) _pure_ _nonnull_if_nonzero_(1, 3);
-
 char* strdupcspn(const char *a, const char *reject);
 
 /* These are like strdupa()/strndupa(), but honour ALLOCA_MAX */
@@ -219,32 +210,8 @@ char* strdupcspn(const char *a, const char *reject);
                 (char*) memdupa_suffix0(_t, strnlen(_t, n));            \
         })
 
-char* find_line_startswith_internal(const char *haystack, const char *needle);
-#define find_line_startswith(haystack, needle) \
-        const_generic(haystack, find_line_startswith_internal(haystack, needle))
-
-char* find_line_internal(const char *haystack, const char *needle);
-#define find_line(haystack, needle) \
-        const_generic(haystack, find_line_internal(haystack, needle))
-
-char* find_line_after_internal(const char *haystack, const char *needle);
-#define find_line_after(haystack, needle) \
-        const_generic(haystack, find_line_after_internal(haystack, needle))
-
 typedef enum VersionFlags {
         VERSION_ALLOW_EMPTY      = 1 << 0,
         VERSION_ALLOW_UNDERSCORE = 1 << 1, /* Allow "_" as separator (recommended separator) */
         VERSION_ALLOW_PLUS       = 1 << 2, /* Allow "+" as separator (sometimes used as separator for boot attempt counters) */
 } VersionFlags;
-
-bool version_is_valid(const char *s, VersionFlags flags) _pure_;
-
-char* strrstr_internal(const char *haystack, const char *needle) _pure_;
-#define strrstr(haystack, needle) \
-        const_generic(haystack, strrstr_internal(haystack, needle))
-
-char* strrstr_no_case_internal(const char *haystack, const char *needle) _pure_;
-#define strrstr_no_case(haystack, needle) \
-        const_generic(haystack, strrstr_no_case_internal(haystack, needle))
-
-size_t str_common_prefix(const char *a, const char *b) _pure_;

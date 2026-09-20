@@ -21,10 +21,3 @@ static inline int xsetxattr(
                 const char *value) {
         return xsetxattr_full(fd, path, at_flags, name, value, SIZE_MAX, 0);
 }
-
-int xsetxattr_strv(int fd, const char *path, int at_flags, const char *name, char * const *l);
-
-int xremovexattr(int fd, const char *path, int at_flags, const char *name);
-
-bool xattr_is_acl(const char *name);
-bool xattr_is_selinux(const char *name);

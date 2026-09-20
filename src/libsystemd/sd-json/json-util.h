@@ -46,36 +46,6 @@ struct json_variant_foreach_state {
 #define JSON_VARIANT_OBJECT_FOREACH(k, e, v)                            \
         _JSON_VARIANT_OBJECT_FOREACH(k, e, v, UNIQ_T(state, UNIQ))
 
-#define JSON_DISPATCH_ENUM_DEFINE(name, type, func)                     \
-        int name(const char *n, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata) { \
-                type *c = ASSERT_PTR(userdata);                         \
-                                                                        \
-                assert(variant);                                        \
-                                                                        \
-                if (sd_json_variant_is_null(variant)) {                 \
-                        *c = (type) -EINVAL;                            \
-                        return 0;                                       \
-                }                                                       \
-                                                                        \
-                if (!sd_json_variant_is_string(variant))                \
-                        return json_log(variant, flags, SYNTHETIC_ERRNO(EINVAL), "JSON field '%s' is not a string.", strna(n)); \
-                                                                        \
-                type cc = func(sd_json_variant_string(variant));        \
-                if (cc < 0) {                                           \
-                        /* Maybe this enum is recognizable if we replace "_" (i.e. Varlink syntax) with "-" (how we usually prefer it). */ \
-                        _cleanup_free_ char *z = strdup(sd_json_variant_string(variant)); \
-                        if (!z)                                         \
-                                return json_log_oom(variant, flags);    \
-                                                                        \
-                        cc = func(json_dashify(z));                     \
-                        if (cc < 0)                                     \
-                                return json_log(variant, flags, SYNTHETIC_ERRNO(EINVAL), "Value of JSON field '%s' not recognized: %s", strna(n), sd_json_variant_string(variant)); \
-                }                                                       \
-                                                                        \
-                *c = cc;                                                \
-                return 0;                                               \
-        }
-
 static inline int json_dispatch_level(sd_json_dispatch_flags_t flags) {
 
         /* Did the user request no logging? If so, then never log higher than LOG_DEBUG. Also, if this is marked as
@@ -250,5 +220,3 @@ int json_variant_new_devnum(sd_json_variant **ret, dev_t devnum);
 int json_variant_new_fd_info(sd_json_variant **ret, int fd);
 
 char *json_underscorify(char *p);
-char *json_dashify(char *p);
-

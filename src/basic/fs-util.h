@@ -34,9 +34,6 @@ int var_tmp_dir(const char **ret);
 char *rmdir_and_free(char *p);
 DEFINE_TRIVIAL_CLEANUP_FUNC(char*, rmdir_and_free);
 
-char* unlink_and_free(char *p);
-DEFINE_TRIVIAL_CLEANUP_FUNC(char*, unlink_and_free);
-
 typedef enum UnlinkDeallocateFlags {
         UNLINK_REMOVEDIR = 1 << 0,
         UNLINK_ERASE     = 1 << 1,
@@ -61,14 +58,6 @@ static inline int xopenat_full(int dir_fd, const char *path, int open_flags, XOp
 }
 static inline int xopenat(int dir_fd, const char *path, int open_flags) {
         return xopenat_full(dir_fd, path, open_flags, 0, MODE_INVALID);
-}
-
-int xopenat_lock_full_label(int dir_fd, const char *path, int open_flags, XOpenFlags xopen_flags, mode_t mode, LockType locktype, int operation, LabelContext *label_context);
-static inline int xopenat_lock_full(int dir_fd, const char *path, int open_flags, XOpenFlags xopen_flags, mode_t mode, LockType locktype, int operation) {
-        return xopenat_lock_full_label(dir_fd, path, open_flags, xopen_flags, mode, locktype, operation, /* label_context= */ NULL);
-}
-static inline int xopenat_lock(int dir_fd, const char *path, int open_flags, LockType locktype, int operation) {
-        return xopenat_lock_full(dir_fd, path, open_flags, 0, 0, locktype, operation);
 }
 
 static inline int at_flags_normalize_nofollow(int flags) {

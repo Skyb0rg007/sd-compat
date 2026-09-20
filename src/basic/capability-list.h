@@ -9,8 +9,5 @@
 #define CAPABILITY_TO_STRING_MAX (2 + 2 + 1)
 
 const char* capability_to_name(int id);
-const char* capability_to_string(int id, char buf[static CAPABILITY_TO_STRING_MAX]);
-#define CAPABILITY_TO_STRING(id) capability_to_string(id, (char[CAPABILITY_TO_STRING_MAX]) {})
 
 unsigned capability_list_length(void);
-

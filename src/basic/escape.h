@@ -47,10 +47,6 @@ typedef enum XEscapeFlags {
         XESCAPE_FORCE_ELLIPSIS = 1 << 1,
 } XEscapeFlags;
 
-char* xescape_full(const char *s, const char *bad, size_t console_width, XEscapeFlags flags);
-static inline char* xescape(const char *s, const char *bad) {
-        return xescape_full(s, bad, SIZE_MAX, 0);
-}
 char* octescape_full(const char *s, size_t len, const char *bad);
 static inline char* octescape(const char *s, size_t len) {
         return octescape_full(s, len, NULL);
