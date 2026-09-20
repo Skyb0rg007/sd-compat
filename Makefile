@@ -19,9 +19,15 @@ GENDIR = $(BUILDDIR)/gen
 
 prefix = /usr
 sysconfdir = /etc
+includedir = $(prefix)/include
 libdir = $(prefix)/lib
 libexecdir = $(prefix)/lib/systemd
 pkgsysconfdir = $(sysconfdir)/systemd
+pkgconfigdir = $(libdir)/pkgconfig
+
+DESTDIR =
+
+INSTALL = install
 
 # ---------------------------------------------------------------------------
 # Include paths
@@ -97,6 +103,9 @@ DEPFLAGS = -MD -MP
 CFLAGS = $(WARNFLAGS) -fPIC -fvisibility=default $(DEPFLAGS) \
 		 $(CONFIG_DEFINES) $(USER_DEFINES) $(PATH_DEFINES)
 
+# The upstream libsystemd release this compatibility library tracks.
+VERSION = 262
+
 VERSION_SCRIPT = src/libsystemd/libsystemd.sym
 
 LDFLAGS =
@@ -169,8 +178,43 @@ $(BUILDDIR)/libsystemd.so: $(BUILDDIR)/$(SONAME)
 $(GENDIR):
 	mkdir -p $@
 
-.PHONY: all clean
+# ---------------------------------------------------------------------------
+# Installation
+#
+# ---------------------------------------------------------------------------
+
+PUBLIC_HEADERS = $(filter-out include/sd-future.h,$(wildcard include/*.h))
+
+PKGCONFIG_FILE = $(BUILDDIR)/libsystemd.pc
+
+$(PKGCONFIG_FILE): Makefile | $(BUILDDIR)
+	printf '%s\n' \
+		'prefix=$(prefix)' \
+		'exec_prefix=$${prefix}' \
+		'libdir=$(libdir)' \
+		'includedir=$(includedir)' \
+		'' \
+		'Name: libsystemd' \
+		'Description: systemd Library' \
+		'Version: $(VERSION)' \
+		'Libs: -L$${libdir} -lsystemd' \
+		'Cflags: -I$${includedir}' \
+		> $@
+
+$(BUILDDIR):
+	mkdir -p $@
+
+.PHONY: all clean install
 all: $(BUILDDIR)/libsystemd.so $(BUILDDIR)/$(SONAME)
+
+install: all $(PKGCONFIG_FILE)
+	$(INSTALL) -d $(DESTDIR)$(includedir)/systemd
+	$(INSTALL) -m 644 $(PUBLIC_HEADERS) $(DESTDIR)$(includedir)/systemd
+	$(INSTALL) -d $(DESTDIR)$(libdir)
+	$(INSTALL) -m 755 $(BUILDDIR)/$(SONAME) $(DESTDIR)$(libdir)/$(SONAME)
+	ln -sf $(SONAME) $(DESTDIR)$(libdir)/libsystemd.so
+	$(INSTALL) -d $(DESTDIR)$(pkgconfigdir)
+	$(INSTALL) -m 644 $(PKGCONFIG_FILE) $(DESTDIR)$(pkgconfigdir)/libsystemd.pc
 
 clean:
 	rm -rf $(BUILDDIR)
