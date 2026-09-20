@@ -30,7 +30,25 @@ typedef enum ChaseFlags {
         CHASE_MUST_BE_SOCKET     = 1 << 15, /* Fail if returned inode fd is not a socket */
 } ChaseFlags;
 
-int statx_unsafe_transition(const struct statx *a, const struct statx *b);
+/* Everything but CHASE_MUST_BE_DIRECTORY: no caller passes any of these anymore, and the code implementing
+ * them has been dropped. CHASE_MUST_BE_DIRECTORY stays because chaseat() sets it on itself for paths that
+ * name a directory by construction ("/", "/.", "..", "/.."). */
+#define CHASE_UNSUPPORTED                       \
+        (CHASE_PREFIX_ROOT |                    \
+         CHASE_NONEXISTENT |                    \
+         CHASE_NO_AUTOFS |                      \
+         CHASE_TRIGGER_AUTOFS |                 \
+         CHASE_SAFE |                           \
+         CHASE_TRAIL_SLASH |                    \
+         CHASE_STEP |                           \
+         CHASE_NOFOLLOW |                       \
+         CHASE_WARN |                           \
+         CHASE_PROHIBIT_SYMLINKS |              \
+         CHASE_PARENT |                         \
+         CHASE_MKDIR_0755 |                     \
+         CHASE_EXTRACT_FILENAME |               \
+         CHASE_MUST_BE_REGULAR |                \
+         CHASE_MUST_BE_SOCKET)
 
 /* How many iterations to execute before returning -ELOOP */
 #define CHASE_MAX 128U
