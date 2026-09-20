@@ -1,9 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include "alloc-util.h"
 #include "escape.h"
 #include "extract-word.h"
-#include "log.h"
 #include "string-util.h"
 #include "utf8.h"
 
@@ -187,95 +185,8 @@ finish_force_next:
         return 1;
 }
 
-int extract_first_word_and_warn(
-                const char **p,
-                char **ret,
-                const char *separators,
-                ExtractFlags flags,
-                const char *unit,
-                const char *filename,
-                unsigned line,
-                const char *rvalue) {
-
-        /* Try to unquote it, if it fails, warn about it and try again
-         * but this time using EXTRACT_UNESCAPE_RELAX to keep the
-         * backslashes verbatim in invalid escape sequences. */
-
-        const char *save;
-        int r;
-
-        assert(p);
-        assert(ret);
-
-        save = *p;
-        r = extract_first_word(p, ret, separators, flags);
-        if (r >= 0)
-                return r;
-
-        if (r == -EINVAL && !(flags & EXTRACT_UNESCAPE_RELAX)) {
-
-                /* Retry it with EXTRACT_UNESCAPE_RELAX. */
-                *p = save;
-                r = extract_first_word(p, ret, separators, flags|EXTRACT_UNESCAPE_RELAX);
-                if (r >= 0) {
-                        /* It worked this time, hence it must have been an invalid escape sequence. */
-                        log_syntax(unit, LOG_WARNING, filename, line, EINVAL, "Ignoring unknown escape sequences: \"%s\"", *ret);
-                        return r;
-                }
-
-                /* If it's still EINVAL; then it must be unbalanced quoting, report this. */
-                if (r == -EINVAL)
-                        return log_syntax(unit, LOG_ERR, filename, line, r, "Unbalanced quoting, ignoring: \"%s\"", rvalue);
-        }
-
-        /* Can be any error, report it */
-        return log_syntax(unit, LOG_ERR, filename, line, r, "Unable to decode word \"%s\", ignoring: %m", rvalue);
-}
-
 /* We pass ExtractFlags as unsigned int (to avoid undefined behaviour when passing
  * an object that undergoes default argument promotion as an argument to va_start).
  * Let's make sure that ExtractFlags fits into an unsigned int. */
 assert_cc(sizeof(enum ExtractFlags) <= sizeof(unsigned));
 
-int extract_many_words_internal(const char **p, const char *separators, unsigned flags, ...) {
-        va_list ap;
-        unsigned n = 0;
-        int r;
-
-        /* Parses a number of words from a string, stripping any quotes if necessary. */
-
-        assert(p);
-
-        /* Count how many words are expected */
-        va_start(ap, flags);
-        while (va_arg(ap, char**))
-                n++;
-        va_end(ap);
-
-        if (n == 0)
-                return 0;
-
-        /* Read all words into a temporary array */
-        char **l = newa0(char*, n);
-        unsigned c;
-
-        for (c = 0; c < n; c++) {
-                r = extract_first_word(p, &l[c], separators, flags);
-                if (r < 0) {
-                        free_many_charp(l, c);
-                        return r;
-                }
-                if (r == 0)
-                        break;
-        }
-
-        /* If we managed to parse all words, return them in the passed in parameters */
-        va_start(ap, flags);
-        FOREACH_ARRAY(i, l, n) {
-                char **v = ASSERT_PTR(va_arg(ap, char**));
-                *v = *i;
-        }
-        va_end(ap);
-
-        return c;
-}

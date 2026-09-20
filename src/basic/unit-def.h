@@ -311,18 +311,10 @@ typedef enum ExecDirectoryType {
         _EXEC_DIRECTORY_TYPE_INVALID = -EINVAL,
 } ExecDirectoryType;
 
-char* unit_dbus_path_from_name(const char *name);
-int unit_name_from_dbus_path(const char *path, char **name);
-
-const char* unit_dbus_interface_from_type(UnitType t);
-const char* unit_dbus_interface_from_name(const char *name);
-
 DECLARE_STRING_TABLE_LOOKUP(unit_type, UnitType);
-void unit_types_list(void);
 
 DECLARE_STRING_TABLE_LOOKUP(unit_load_state, UnitLoadState);
 DECLARE_STRING_TABLE_LOOKUP(unit_active_state, UnitActiveState);
-const char* unit_type_to_capitalized_string(UnitType t);
 
 DECLARE_STRING_TABLE_LOOKUP(freezer_state, FreezerState);
 FreezerState freezer_state_finish(FreezerState state) _const_;
@@ -345,4 +337,3 @@ DECLARE_STRING_TABLE_LOOKUP(notify_access, NotifyAccess);
 DECLARE_STRING_TABLE_LOOKUP(job_mode, JobMode);
 DECLARE_STRING_TABLE_LOOKUP(exec_directory_type, ExecDirectoryType);
 
-Glyph unit_active_state_to_glyph(UnitActiveState state);

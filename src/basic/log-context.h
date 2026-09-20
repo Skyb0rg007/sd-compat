@@ -62,7 +62,6 @@ DEFINE_TRIVIAL_CLEANUP_FUNC(LogContext*, log_context_unref);
 /* Returns the head of the log context list. */
 LogContext* log_context_head(void);
 /* Returns the number of attached log context objects. */
-size_t log_context_num_contexts(void);
 /* Returns the number of fields in all attached log contexts. */
 size_t log_context_num_fields(void);
 

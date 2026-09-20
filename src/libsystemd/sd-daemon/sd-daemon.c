@@ -2,16 +2,9 @@
 
 #include <linux/magic.h>
 #include <mqueue.h>
-#include <netinet/in.h>
-#include <poll.h>
-#include <stdio.h>
-#include <sys/stat.h>
-#include <sys/un.h>
-#include <unistd.h>
 
 #include "sd-daemon.h"
 
-#include "alloc-util.h"
 #include "errno-util.h"
 #include "escape.h"
 #include "extract-word.h"

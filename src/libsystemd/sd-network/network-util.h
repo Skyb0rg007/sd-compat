@@ -9,8 +9,6 @@
 #define NETWORK_DIRS ((const char* const*) CONF_PATHS_STRV("systemd/network"))
 #define NETWORK_DIRS_NULSTR CONF_PATHS_NULSTR("systemd/network")
 
-bool network_is_online(void);
-
 typedef enum AddressFamily {
         /* This is a bitmask, though it usually doesn't feel that way! */
         ADDRESS_FAMILY_NO             = 0,
@@ -20,17 +18,6 @@ typedef enum AddressFamily {
         _ADDRESS_FAMILY_MAX,
         _ADDRESS_FAMILY_INVALID = -EINVAL,
 } AddressFamily;
-
-static inline AddressFamily AF_TO_ADDRESS_FAMILY(int af) {
-        switch (af) {
-        case AF_INET:
-                return ADDRESS_FAMILY_IPV4;
-        case AF_INET6:
-                return ADDRESS_FAMILY_IPV6;
-        default:
-                return ADDRESS_FAMILY_NO;
-        }
-}
 
 typedef enum LinkOperationalState {
         LINK_OPERSTATE_MISSING,
@@ -100,18 +87,3 @@ typedef struct LinkOperationalStateRange {
                 .max = _LINK_OPERSTATE_INVALID, \
         }
 
-int parse_operational_state_range(const char *s, LinkOperationalStateRange *ret);
-int network_link_get_operational_state(int ifindex, LinkOperationalState *ret);
-
-static inline bool operational_state_is_valid(LinkOperationalState s) {
-        return s >= 0 && s < _LINK_OPERSTATE_MAX;
-}
-static inline bool operational_state_range_is_valid(const LinkOperationalStateRange *range) {
-        return range &&
-                operational_state_is_valid(range->min) &&
-                operational_state_is_valid(range->max) &&
-                range->min <= range->max;
-}
-static inline bool operational_state_is_in_range(LinkOperationalState s, const LinkOperationalStateRange *range) {
-        return range && range->min <= s && s <= range->max;
-}

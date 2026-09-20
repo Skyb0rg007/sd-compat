@@ -1,9 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include "alloc-util.h"
 #include "fd-util.h"
 #include "fileio.h"
-#include "log.h"
 #include "memstream-util.h"
 
 void memstream_done(MemStream *m) {
@@ -54,22 +52,3 @@ int memstream_finalize(MemStream *m, char **ret_buf, size_t *ret_size) {
         return 0;
 }
 
-int memstream_dump_internal(
-                int level,
-                int error,
-                const char *file,
-                int line,
-                const char *func,
-                MemStream *m) {
-
-        _cleanup_free_ char *buf = NULL;
-        int r;
-
-        assert(m);
-
-        r = memstream_finalize(m, &buf, NULL);
-        if (r < 0)
-                return log_full_errno(level, r, "Failed to flush memstream: %m");
-
-        return log_dump_internal(level, error, file, line, func, buf);
-}

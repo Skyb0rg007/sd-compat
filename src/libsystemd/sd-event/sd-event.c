@@ -2,37 +2,25 @@
 
 #include <linux/magic.h>
 #include <malloc.h>
-#include <stdlib.h>
 #include <sys/timerfd.h>
-#include <sys/wait.h>
-#include <threads.h>
-#include <unistd.h>
 
 #include "sd-daemon.h"
-#include "sd-event.h"
 #include "sd-future.h"
-#include "sd-id128.h"
 #include "sd-messages.h"
 
-#include "alloc-util.h"
 #include "errno-util.h"
 #include "event-future.h"
 #include "event-source.h"
 #include "event-util.h"
 #include "fd-util.h"
-#include "format-util.h"
 #include "glyph-util.h"
-#include "hashmap.h"
 #include "hexdecoct.h"
-#include "list.h"
 #include "log.h"
 #include "logarithm.h"
-#include "memory-util.h"
 #include "origin-id.h"
 #include "path-util.h"
 #include "pidfd-util.h"
 #include "prioq.h"
-#include "process-util.h"
 #include "psi-util.h"
 #include "set.h"
 #include "signal-util.h"
@@ -40,7 +28,6 @@
 #include "socket-util.h"
 #include "stat-util.h"
 #include "string-table.h"
-#include "string-util.h"
 #include "strv.h"
 #include "strxcpyx.h"
 #include "time-util.h"

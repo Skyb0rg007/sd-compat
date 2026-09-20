@@ -40,17 +40,12 @@ static inline bool gid_is_valid(gid_t gid) {
 }
 
 int parse_uid(const char *s, uid_t* ret_uid);
-int parse_uid_range(const char *s, uid_t *ret_lower, uid_t *ret_upper);
 
 static inline int parse_gid(const char *s, gid_t *ret_gid) {
         return parse_uid(s, (uid_t*) ret_gid);
 }
 
-char* getlogname_malloc(void);
 char* getusername_malloc(void);
-
-const char* default_root_shell_at(int rfd);
-const char* default_root_shell(const char *root);
 
 bool is_nologin_shell(const char *shell) _pure_;
 bool shell_is_placeholder(const char *shell) _pure_;
@@ -62,33 +57,14 @@ typedef enum UserCredsFlags {
         USER_CREDS_SUPPRESS_PLACEHOLDER = 1 << 3,  /* suppress home and/or shell fields if value is placeholder (root/empty/nologin) */
 } UserCredsFlags;
 
-int get_user_creds(
-                const char *username,
-                UserCredsFlags flags,
-                char **ret_username,
-                uid_t *ret_uid, gid_t *ret_gid,
-                char **ret_home,
-                char **ret_shell);
-int get_group_creds(const char *groupname, UserCredsFlags flags, char **ret_name, gid_t *ret_gid);
-
 char* uid_to_name(uid_t uid);
-char* gid_to_name(gid_t gid);
-
-int in_gid(gid_t gid);
-int in_group(const char *name);
-
-int merge_gid_lists(const gid_t *list1, size_t size1, const gid_t *list2, size_t size2, gid_t **ret);
-int getgroups_alloc(gid_t **ret);
 
 int get_home_dir(char **ret);
-int get_shell(char **ret);
 
 int fully_set_uid_gid(uid_t uid, gid_t gid, const gid_t supplementary_gids[], size_t n_supplementary_gids);
 static inline int reset_uid_gid(void) {
         return fully_set_uid_gid(0, 0, NULL, 0);
 }
-
-int take_etc_passwd_lock(const char *root);
 
 #define UID_INVALID ((uid_t) -1)
 #define GID_INVALID ((gid_t) -1)
@@ -131,33 +107,16 @@ typedef enum ValidUserFlags {
 } ValidUserFlags;
 
 bool valid_user_group_name(const char *u, ValidUserFlags flags);
-bool valid_gecos(const char *d);
-char* mangle_gecos(const char *d);
-bool valid_home(const char *p);
-bool valid_shell(const char *p);
 
 int maybe_setgroups(size_t size, const gid_t *list);
 
 bool synthesize_nobody(void);
 
 int fgetpwent_sane(FILE *stream, struct passwd **pw);
-int fgetspent_sane(FILE *stream, struct spwd **sp);
-int fgetgrent_sane(FILE *stream, struct group **gr);
-int putpwent_sane(const struct passwd *pw, FILE *stream);
-int putspent_sane(const struct spwd *sp, FILE *stream);
-int putgrent_sane(const struct group *gr, FILE *stream);
 #if ENABLE_GSHADOW
 int fgetsgent_sane(FILE *stream, struct sgrp **sg);
 int putsgent_sane(const struct sgrp *sg, FILE *stream);
 #endif
-
-int is_this_me(const char *username);
-
-const char* get_home_root(void);
-
-static inline bool hashed_password_is_locked_or_invalid(const char *password) {
-        return password && password[0] != '$';
-}
 
 /* Places where we will try to load account data from */
 #define PASSWD_FILES STRV_MAKE("/etc/passwd", "/usr/lib/passwd")
@@ -184,22 +143,6 @@ int lookup_pwent_in_files(
                 const char *name,
                 uid_t uid,
                 struct passwd **ret);
-int lookup_grent_in_files(
-                char * const *files,
-                const char *name,
-                gid_t gid,
-                struct group **ret);
-
-ssize_t lookup_groups_in_files(
-                char * const *files,
-                const char *name,
-                gid_t gid,
-                gid_t **ret);
-int getgrouplist_malloc(const char *user, gid_t gid, gid_t **ret);
-int initgroups_wrapper(const char *user, gid_t gid);
 
 int getpwuid_malloc(uid_t uid, struct passwd **ret);
-int getpwnam_malloc(const char *name, struct passwd **ret);
 
-int getgrnam_malloc(const char *name, struct group **ret);
-int getgrgid_malloc(gid_t gid, struct group **ret);

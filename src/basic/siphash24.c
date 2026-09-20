@@ -19,11 +19,8 @@
     coding style)
 */
 
-#include <stdio.h>
 
-#include "iovec-util.h"
 #include "siphash24.h"
-#include "string-util.h"
 #include "unaligned.h"
 
 static uint64_t rotate_left(uint64_t x, uint8_t b) {
@@ -153,20 +150,6 @@ void siphash24_compress(const void *_in, size_t inlen, struct siphash *state) {
         }
 }
 
-void siphash24_compress_string(const char *in, struct siphash *state) {
-        siphash24_compress_safe(in, strlen_ptr(in), state);
-}
-
-void siphash24_compress_iovec(const struct iovec *iov, struct siphash *state) {
-        assert(iovec_is_valid(iov));
-        assert(state);
-
-        if (!iovec_is_set(iov))
-                return;
-
-        siphash24_compress(iov->iov_base, iov->iov_len, state);
-}
-
 uint64_t siphash24_finalize(struct siphash *state) {
         uint64_t b;
 
@@ -203,18 +186,3 @@ uint64_t siphash24_finalize(struct siphash *state) {
         return state->v0 ^ state->v1 ^ state->v2  ^ state->v3;
 }
 
-uint64_t siphash24(const void *in, size_t inlen, const uint8_t k[static 16]) {
-        struct siphash state;
-
-        assert(in);
-        assert(k);
-
-        siphash24_init(&state, k);
-        siphash24_compress(in, inlen, &state);
-
-        return siphash24_finalize(&state);
-}
-
-uint64_t siphash24_string(const char *s, const uint8_t k[static 16]) {
-        return siphash24(s, strlen(s) + 1, k);
-}

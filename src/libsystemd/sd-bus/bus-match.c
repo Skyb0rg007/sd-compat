@@ -2,15 +2,11 @@
 
 #include "sd-bus.h"
 
-#include "alloc-util.h"
 #include "bus-internal.h"
-#include "bus-match.h"
 #include "bus-message.h"
 #include "hashmap.h"
 #include "hexdecoct.h"
-#include "memstream-util.h"
 #include "sort-util.h"
-#include "stdio-util.h"
 #include "string-util.h"
 #include "strv.h"
 
@@ -828,46 +824,6 @@ int bus_match_parse(
         return 0;
 }
 
-char* bus_match_to_string(BusMatchComponent *components, size_t n_components) {
-        _cleanup_(memstream_done) MemStream m = {};
-        FILE *f;
-        int r;
-
-        if (n_components <= 0)
-                return strdup("");
-
-        assert(components);
-
-        f = memstream_init(&m);
-        if (!f)
-                return NULL;
-
-        for (size_t i = 0; i < n_components; i++) {
-                char buf[32];
-
-                if (i != 0)
-                        fputc(',', f);
-
-                fputs(bus_match_node_type_to_string(components[i].type, buf, sizeof(buf)), f);
-                fputc('=', f);
-                fputc('\'', f);
-
-                if (components[i].type == BUS_MATCH_MESSAGE_TYPE)
-                        fputs(bus_message_type_to_string(components[i].value_u8), f);
-                else
-                        fputs(components[i].value_str, f);
-
-                fputc('\'', f);
-        }
-
-        char *buffer;
-        r = memstream_finalize(&m, &buffer, NULL);
-        if (r < 0)
-                return NULL;
-
-        return buffer;
-}
-
 int bus_match_add(
                 BusMatchNode *root,
                 BusMatchComponent *components,
@@ -944,87 +900,6 @@ void bus_match_free(BusMatchNode *node) {
 
         if (node->type != BUS_MATCH_ROOT)
                 bus_match_node_free(node);
-}
-
-const char* bus_match_node_type_to_string(BusMatchNodeType t, char buf[], size_t l) {
-        switch (t) {
-
-        case BUS_MATCH_ROOT:
-                return "root";
-
-        case BUS_MATCH_VALUE:
-                return "value";
-
-        case BUS_MATCH_LEAF:
-                return "leaf";
-
-        case BUS_MATCH_MESSAGE_TYPE:
-                return "type";
-
-        case BUS_MATCH_SENDER:
-                return "sender";
-
-        case BUS_MATCH_DESTINATION:
-                return "destination";
-
-        case BUS_MATCH_INTERFACE:
-                return "interface";
-
-        case BUS_MATCH_MEMBER:
-                return "member";
-
-        case BUS_MATCH_PATH:
-                return "path";
-
-        case BUS_MATCH_PATH_NAMESPACE:
-                return "path_namespace";
-
-        case BUS_MATCH_ARG ... BUS_MATCH_ARG_LAST:
-                return snprintf_ok(buf, l, "arg%i", t - BUS_MATCH_ARG);
-
-        case BUS_MATCH_ARG_PATH ... BUS_MATCH_ARG_PATH_LAST:
-                return snprintf_ok(buf, l, "arg%ipath", t - BUS_MATCH_ARG_PATH);
-
-        case BUS_MATCH_ARG_NAMESPACE ... BUS_MATCH_ARG_NAMESPACE_LAST:
-                return snprintf_ok(buf, l, "arg%inamespace", t - BUS_MATCH_ARG_NAMESPACE);
-
-        case BUS_MATCH_ARG_HAS ... BUS_MATCH_ARG_HAS_LAST:
-                return snprintf_ok(buf, l, "arg%ihas", t - BUS_MATCH_ARG_HAS);
-
-        default:
-                return NULL;
-        }
-}
-
-void bus_match_dump(FILE *out, BusMatchNode *node, unsigned level) {
-        char buf[32];
-
-        if (!node)
-                return;
-
-        fprintf(out, "%*s[%s]", 2 * (int) level, "", bus_match_node_type_to_string(node->type, buf, sizeof(buf)));
-
-        if (node->type == BUS_MATCH_VALUE) {
-                if (node->parent->type == BUS_MATCH_MESSAGE_TYPE)
-                        fprintf(out, " <%u>\n", node->value.u8);
-                else
-                        fprintf(out, " <%s>\n", node->value.str);
-        } else if (node->type == BUS_MATCH_ROOT)
-                fputs(" root\n", out);
-        else if (node->type == BUS_MATCH_LEAF)
-                fprintf(out, " %p/%p\n", node->leaf.callback->callback,
-                        container_of(node->leaf.callback, sd_bus_slot, match_callback)->userdata);
-        else
-                putc('\n', out);
-
-        if (BUS_MATCH_CAN_HASH(node->type)) {
-                BusMatchNode *c;
-                HASHMAP_FOREACH(c, node->compare.children)
-                        bus_match_dump(out, c, level + 1);
-        }
-
-        for (BusMatchNode *c = node->child; c; c = c->next)
-                bus_match_dump(out, c, level + 1);
 }
 
 BusMatchScope bus_match_get_scope(const BusMatchComponent *components, size_t n_components) {

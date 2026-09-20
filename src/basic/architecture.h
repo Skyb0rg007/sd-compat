@@ -47,8 +47,6 @@ typedef enum Architecture {
         _ARCHITECTURE_INVALID = -EINVAL,
 } Architecture;
 
-Architecture uname_architecture(void);
-
 /*
  * LIB_ARCH_TUPLE should resolve to the local library path
  * architecture tuple systemd is built for, according to the Debian

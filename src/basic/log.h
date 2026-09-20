@@ -34,40 +34,19 @@ assert_cc(LOG_NULL == -1);
 /* The callback function to be invoked when syntax warnings are seen
  * in the unit files. */
 typedef void (*log_syntax_callback_t)(const char *unit, int level, void *userdata);
-void set_log_syntax_callback(log_syntax_callback_t cb, void *userdata);
-
-static inline void clear_log_syntax_callback(dummy_t *dummy) {
-          set_log_syntax_callback(/* cb= */ NULL, /* userdata= */ NULL);
-}
 
 DECLARE_STRING_TABLE_LOOKUP(log_target, LogTarget);
 void log_set_target(LogTarget target);
-void log_set_target_and_open(LogTarget target);
-int log_set_target_from_string(const char *e);
 LogTarget log_get_target(void) _pure_;
 void log_settle_target(void);
 
 int log_set_max_level(int level);
-int log_set_max_level_from_string(const char *e);
 int log_get_max_level(void) _pure_;
-int log_get_target_max_level(LogTarget target);
-int log_max_levels_to_string(int level, char **ret);
 
-void log_set_facility(int facility);
-
-void log_show_color(bool b);
 bool log_get_show_color(void) _pure_;
-void log_show_location(bool b);
 bool log_get_show_location(void) _pure_;
-void log_show_time(bool b);
 bool log_get_show_time(void) _pure_;
-void log_show_tid(bool b);
 bool log_get_show_tid(void) _pure_;
-
-int log_show_color_from_string(const char *e);
-int log_show_location_from_string(const char *e);
-int log_show_time_from_string(const char *e);
-int log_show_tid_from_string(const char *e);
 
 /* Functions below that open and close logs or configure logging based on the
  * environment should not be called from library code — this is always a job
@@ -77,9 +56,6 @@ bool stderr_is_journal(void);
 int log_open(void);
 void log_close(void);
 void log_forget_fds(void);
-
-void log_parse_environment_variables(void);
-void log_parse_environment(void);
 
 int log_dispatch_internal(
                 int level,
@@ -109,31 +85,6 @@ int log_internalv(
                 const char *func,
                 const char *format,
                 va_list ap) _printf_(6,0);
-
-int log_object_internalv(
-                int level,
-                int error,
-                const char *file,
-                int line,
-                const char *func,
-                const char *object_field,
-                const char *object,
-                const char *extra_field,
-                const char *extra,
-                const char *format,
-                va_list ap) _printf_(10,0);
-
-int log_object_internal(
-                int level,
-                int error,
-                const char *file,
-                int line,
-                const char *func,
-                const char *object_field,
-                const char *object,
-                const char *extra_field,
-                const char *extra,
-                const char *format, ...) _printf_(10,11);
 
 int log_struct_internal(
                 int level,
@@ -311,13 +262,9 @@ extern bool _log_message_dummy;
 #define LOG_MESSAGE(fmt, ...) LOG_ITEM("MESSAGE=" fmt, ##__VA_ARGS__)
 #define LOG_MESSAGE_ID(id)    LOG_ITEM("MESSAGE_ID=" id)
 
-void log_received_signal(int level, const struct signalfd_siginfo *si);
-
 /* If turned on, any requests for a log target involving "syslog" will be implicitly upgraded to the equivalent journal target */
-void log_set_upgrade_syslog_to_journal(bool b);
 
 /* If turned on, and log_open() is called, we'll not use STDERR_FILENO for logging ever, but rather open /dev/console */
-void log_set_always_reopen_console(bool b);
 
 /* If turned on, we'll open the log stream implicitly if needed on each individual log call. This is normally not
  * desired as we want to reuse our logging streams. It is useful however  */
@@ -325,9 +272,6 @@ void log_set_open_when_needed(bool b);
 
 /* If turned on, then we'll never use IPC-based logging, i.e. never log to syslog or the journal. We'll only log to
  * stderr, the console or kmsg */
-void log_set_prohibit_ipc(bool b);
-
-int log_dup_console(void);
 
 int log_syntax_internal(
                 const char *unit,
@@ -385,8 +329,6 @@ int log_syntax_parse_error_internal(
         log_syntax_parse_error_full(unit, config_file, config_line, error, /* critical= */ false, lvalue, rvalue)
 
 #define DEBUG_LOGGING _unlikely_(log_get_max_level() >= LOG_DEBUG)
-
-void log_setup(void);
 
 const char* _log_set_prefix(const char *prefix, bool force);
 

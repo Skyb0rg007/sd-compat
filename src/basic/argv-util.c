@@ -1,72 +1,16 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
 #include <sched.h>
-#include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/prctl.h> /* IWYU pragma: keep */
 
-#include "argv-util.h"
 #include "capability-util.h"
 #include "errno-util.h"
 #include "log.h"
-#include "parse-util.h"
-#include "path-util.h"
 #include "process-util.h"
-#include "string-util.h"
 
 int saved_argc = 0;
 char **saved_argv = NULL;
-
-void save_argc_argv(int argc, char **argv) {
-        /* Protect against CVE-2021-4034 style attacks */
-        assert_se(argc > 0);
-        assert_se(argv);
-        assert_se(argv[0]);
-
-        saved_argc = argc;
-        saved_argv = argv;
-}
-
-bool invoked_as(char *argv[], const char *token) {
-        const char *progname = empty_to_null(secure_getenv("SYSTEMD_INVOKED_AS"));
-
-        if (!progname && argv)
-                progname = argv[0];
-
-        if (isempty(progname) || isempty(token))
-                return false;
-
-        return strstr(last_path_component(progname), token);
-}
-
-bool invoked_by_systemd(void) {
-        static int cached = -1;
-        int r;
-
-        if (cached >= 0)
-                return cached;
-
-        /* If the process is directly executed by PID1 (e.g. ExecStart= or generator), systemd-importd,
-         * or systemd-homed, then $SYSTEMD_EXEC_PID= is set, and read the command line. */
-        const char *e = getenv("SYSTEMD_EXEC_PID");
-        if (!e)
-                return (cached = false);
-
-        if (streq(e, "*"))
-                /* For testing. */
-                return (cached = true);
-
-        pid_t p;
-        r = parse_pid(e, &p);
-        if (r < 0) {
-                /* We know that systemd sets the variable correctly. Something else must have set it. */
-                log_debug_errno(r, "Failed to parse \"SYSTEMD_EXEC_PID=%s\", ignoring: %m", e);
-                return (cached = false);
-        }
-
-        cached = getpid_cached() == p;
-        return cached;
-}
 
 static int update_argv(const char name[], size_t l) {
         static int can_do = -1;

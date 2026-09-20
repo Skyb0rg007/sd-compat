@@ -2,7 +2,6 @@
 
 #include "sd-bus-protocol.h"
 
-#include "bus-signature.h"
 #include "bus-type.h"
 
 static int signature_element_length_internal(

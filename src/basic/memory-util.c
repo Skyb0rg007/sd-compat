@@ -1,10 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include <threads.h>
 #include <unistd.h>
 
 #include "alloc-util.h"
-#include "memory-util.h"
 
 size_t page_size(void) {
         static thread_local size_t pgsz = 0;

@@ -5,8 +5,6 @@
 
 #include "forward.h"
 
-int parse_devnum(const char *s, dev_t *ret);
-
 #define DEVNUM_MAJOR_MAX ((UINT32_C(1) << 12) - 1U)
 #define DEVNUM_MINOR_MAX ((UINT32_C(1) << 20) - 1U)
 
@@ -32,13 +30,6 @@ int parse_devnum(const char *s, dev_t *ret);
 int device_path_make_major_minor(mode_t mode, dev_t devnum, char **ret);
 int device_path_make_inaccessible(mode_t mode, char **ret);
 int device_path_make_canonical(mode_t mode, dev_t devnum, char **ret);
-int device_path_parse_major_minor(const char *path, mode_t *ret_mode, dev_t *ret_devnum);
-
-static inline bool devnum_set_and_equal(dev_t a, dev_t b) {
-        /* Returns true if a and b definitely refer to the same device. If either is zero, this means "don't
-         * know" and we'll return false */
-        return a == b && a != 0;
-}
 
 /* Maximum string length for a major:minor string. (Note that DECIMAL_STR_MAX includes space for a trailing NUL) */
 #define DEVNUM_STR_MAX (DECIMAL_STR_MAX(dev_t)-1+1+DECIMAL_STR_MAX(dev_t))

@@ -1,10 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include <stdlib.h>
 
-#include "sd-path.h"
 
-#include "alloc-util.h"
 #include "architecture.h"
 #include "fd-util.h"
 #include "fileio.h"

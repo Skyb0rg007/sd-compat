@@ -52,17 +52,10 @@ typedef struct LookupPaths {
 } LookupPaths;
 
 int lookup_paths_init(LookupPaths *lp, RuntimeScope scope, LookupPathsFlags flags, const char *root_dir);
-int lookup_paths_init_or_warn(LookupPaths *lp, RuntimeScope scope, LookupPathsFlags flags, const char *root_dir);
 
-void lookup_paths_log(LookupPaths *p);
 void lookup_paths_done(LookupPaths *p);
 
-int config_directory_generic(RuntimeScope scope, const char *suffix, char **ret);
 int runtime_directory_generic(RuntimeScope scope, const char *suffix, char **ret);
-int runtime_directory(RuntimeScope scope, const char *fallback_suffix, char **ret);
-int runtime_directory_resolve(RuntimeScope scope, const char *suffix, const char *identifier, char **ret);
-int runtime_directory_make(RuntimeScope scope, const char *suffix, const char *identifier, char **ret);
-int state_directory_generic(RuntimeScope scope, const char *suffix, char **ret);
 
 /* We don't treat /etc/xdg/systemd/ in these functions as the xdg base dir spec suggests because we assume
  * that is a link to /etc/systemd/ anyway. */
@@ -81,30 +74,7 @@ static inline int xdg_user_state_dir(const char *suffix, char **ret) {
         return sd_path_lookup(SD_PATH_USER_STATE_PRIVATE, suffix, ret);
 }
 
-bool path_is_user_data_dir(const char *path);
-bool path_is_user_config_dir(const char *path);
 bool path_is_valid_search_path(const char *path) _pure_;
 
 int generator_binary_paths_internal(RuntimeScope scope, bool env_generator, char ***ret);
-static inline int generator_binary_paths(RuntimeScope runtime_scope, char ***ret) {
-        return generator_binary_paths_internal(runtime_scope, false, ret);
-}
-static inline int env_generator_binary_paths(RuntimeScope runtime_scope, char ***ret) {
-        return generator_binary_paths_internal(runtime_scope, true, ret);
-}
 
-static inline int credential_store_path(RuntimeScope runtime_scope, char ***ret) {
-        return sd_path_lookup_strv(
-                        runtime_scope == RUNTIME_SCOPE_SYSTEM ?
-                        SD_PATH_SYSTEM_SEARCH_CREDENTIAL_STORE : SD_PATH_USER_SEARCH_CREDENTIAL_STORE,
-                        /* suffix= */ NULL,
-                        ret);
-}
-
-static inline int credential_store_path_encrypted(RuntimeScope runtime_scope, char ***ret) {
-        return sd_path_lookup_strv(
-                        runtime_scope == RUNTIME_SCOPE_SYSTEM ?
-                        SD_PATH_SYSTEM_SEARCH_CREDENTIAL_STORE_ENCRYPTED : SD_PATH_USER_SEARCH_CREDENTIAL_STORE_ENCRYPTED,
-                        /* suffix= */ NULL,
-                        ret);
-}

@@ -165,18 +165,6 @@ int prioq_put(Prioq *q, void *data, unsigned *idx) {
         return 0;
 }
 
-int _prioq_ensure_put(Prioq **q, compare_func_t compare_func, void *data, unsigned *idx) {
-        int r;
-
-        assert(q);
-
-        r = prioq_ensure_allocated(q, compare_func);
-        if (r < 0)
-                return r;
-
-        return prioq_put(*q, data, idx);
-}
-
 static void remove_item(Prioq *q, struct prioq_item *i) {
         struct prioq_item *l;
 
@@ -293,18 +281,3 @@ void* prioq_pop(Prioq *q) {
         return data;
 }
 
-unsigned prioq_size(Prioq *q) {
-
-        if (!q)
-                return 0;
-
-        return q->n_items;
-}
-
-bool prioq_isempty(Prioq *q) {
-
-        if (!q)
-                return true;
-
-        return q->n_items <= 0;
-}

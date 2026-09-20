@@ -1,19 +1,11 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include <fcntl.h>
-#include <stdlib.h>
-#include <threads.h>
 
-#include "sd-id128.h"
 
-#include "alloc-util.h"
-#include "chase.h"
-#include "fd-util.h"
 #include "hexdecoct.h"
 #include "hmac.h"
 #include "id128-util.h"
 #include "keyring-util.h"
-#include "path-util.h"
 #include "random-util.h"
 #include "stat-util.h"
 #include "string-util.h"
@@ -140,37 +132,6 @@ _public_ int sd_id128_get_machine(sd_id128_t *ret) {
         if (ret)
                 *ret = saved_machine_id;
         return 0;
-}
-
-int id128_get_machine_at(int rfd, sd_id128_t *ret) {
-        int r;
-
-        assert(wildcard_fd_is_valid(rfd));
-
-        r = dir_fd_is_root_or_cwd(rfd);
-        if (r < 0)
-                return r;
-        if (r > 0)
-                return sd_id128_get_machine(ret);
-
-        _cleanup_close_ int fd =
-                chase_and_openat(rfd, rfd, "/etc/machine-id", CHASE_MUST_BE_REGULAR, O_RDONLY|O_CLOEXEC|O_NOCTTY, /* ret_path= */ NULL);
-        if (fd < 0)
-                return fd;
-
-        return id128_read_fd(fd, ID128_FORMAT_PLAIN | ID128_REFUSE_NULL, ret);
-}
-
-int id128_get_machine(const char *root, sd_id128_t *ret) {
-        if (empty_or_root(root))
-                return sd_id128_get_machine(ret);
-
-        _cleanup_close_ int fd =
-                chase_and_open("/etc/machine-id", root, CHASE_PREFIX_ROOT|CHASE_MUST_BE_REGULAR, O_RDONLY|O_CLOEXEC|O_NOCTTY, /* ret_path= */ NULL);
-        if (fd < 0)
-                return fd;
-
-        return id128_read_fd(fd, ID128_FORMAT_PLAIN | ID128_REFUSE_NULL, ret);
 }
 
 int id128_get_boot(sd_id128_t *ret) {

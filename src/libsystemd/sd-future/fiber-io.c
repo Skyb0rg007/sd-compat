@@ -2,10 +2,6 @@
 
 #include <poll.h>
 #include <sys/epoll.h>          /* IWYU pragma: keep */
-#include <sys/socket.h>
-#include <sys/uio.h>
-#include <time.h>
-#include <unistd.h>
 
 #include "sd-event.h"
 #include "sd-future.h"
@@ -109,46 +105,10 @@ typedef struct ReadvArgs {
         int iovcnt;
 } ReadvArgs;
 
-static ssize_t readv_callback(int fd, void *args) {
-        ReadvArgs *a = ASSERT_PTR(args);
-        ssize_t n;
-
-        n = readv(fd, a->iov, a->iovcnt);
-        return n >= 0 ? n : -errno;
-}
-
-ssize_t sd_fiber_readv(int fd, const struct iovec *iov, int iovcnt) {
-        assert_return(fd >= 0, -EBADF);
-        assert_return(iov || iovcnt == 0, -EINVAL);
-
-        return fiber_io_operation(fd, EPOLLIN, readv_callback, &(ReadvArgs) {
-                .iov = iov,
-                .iovcnt = iovcnt,
-        });
-}
-
 typedef struct WritevArgs {
         const struct iovec *iov;
         int iovcnt;
 } WritevArgs;
-
-static ssize_t writev_callback(int fd, void *args) {
-        WritevArgs *a = ASSERT_PTR(args);
-        ssize_t n;
-
-        n = writev(fd, a->iov, a->iovcnt);
-        return n >= 0 ? n : -errno;
-}
-
-ssize_t sd_fiber_writev(int fd, const struct iovec *iov, int iovcnt) {
-        assert_return(fd >= 0, -EBADF);
-        assert_return(iov || iovcnt == 0, -EINVAL);
-
-        return fiber_io_operation(fd, EPOLLOUT, writev_callback, &(WritevArgs) {
-                .iov = iov,
-                .iovcnt = iovcnt,
-        });
-}
 
 typedef struct RecvArgs {
         void *buf;
@@ -156,215 +116,27 @@ typedef struct RecvArgs {
         int flags;
 } RecvArgs;
 
-static ssize_t recv_callback(int fd, void *args) {
-        RecvArgs *a = ASSERT_PTR(args);
-        ssize_t n;
-
-        n = recv(fd, a->buf, a->len, a->flags);
-        return n >= 0 ? n : -errno;
-}
-
-ssize_t sd_fiber_recv(int sockfd, void *buf, size_t len, int flags) {
-        assert_return(sockfd >= 0, -EBADF);
-        assert_return(buf || len == 0, -EINVAL);
-
-        return fiber_io_operation(sockfd, EPOLLIN, recv_callback, &(RecvArgs) {
-                .buf = buf,
-                .len = len,
-                .flags = flags,
-        });
-}
-
 typedef struct SendArgs {
         const void *buf;
         size_t len;
         int flags;
 } SendArgs;
 
-static ssize_t send_callback(int fd, void *args) {
-        SendArgs *a = ASSERT_PTR(args);
-        ssize_t n;
-
-        n = send(fd, a->buf, a->len, a->flags);
-        return n >= 0 ? n : -errno;
-}
-
-ssize_t sd_fiber_send(int sockfd, const void *buf, size_t len, int flags) {
-        assert_return(sockfd >= 0, -EBADF);
-        assert_return(buf || len == 0, -EINVAL);
-
-        return fiber_io_operation(sockfd, EPOLLOUT, send_callback, &(SendArgs) {
-                .buf = buf,
-                .len = len,
-                .flags = flags,
-        });
-}
-
-int sd_fiber_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-        _cleanup_(nonblock_resetp) int reset_fd = -EBADF;
-        int r;
-
-        assert_return(sockfd >= 0, -EBADF);
-        assert_return(addr, -EINVAL);
-
-        if (!sd_fiber_is_running())
-                return RET_NERRNO(connect(sockfd, addr, addrlen));
-
-        sd_event *e = sd_fiber_get_event();
-        assert(e);
-
-        r = fd_nonblock(sockfd, true);
-        if (r < 0)
-                return r;
-        if (r > 0)
-                reset_fd = sockfd;
-
-        r = RET_NERRNO(connect(sockfd, addr, addrlen));
-        if (r != -EINPROGRESS)
-                return r;
-
-        _cleanup_(sd_future_cancel_wait_unrefp) sd_future *io = NULL;
-        r = future_new_io(e, sockfd, EPOLLOUT, &io);
-        if (r < 0)
-                return r;
-
-        /* future_new_io resolves with the revents mask on success; translate any positive value
-         * (e.g. POLLOUT) back to the connect(2) success status. */
-        r = sd_fiber_suspend();
-        return r > 0 ? 0 : r;
-}
-
 typedef struct RecvmsgArgs {
         struct msghdr *msg;
         int flags;
 } RecvmsgArgs;
-
-static ssize_t recvmsg_callback(int fd, void *args) {
-        RecvmsgArgs *a = ASSERT_PTR(args);
-        ssize_t n;
-
-        n = recvmsg(fd, a->msg, a->flags);
-        return n >= 0 ? n : -errno;
-}
-
-ssize_t sd_fiber_recvmsg(int sockfd, struct msghdr *msg, int flags) {
-        assert_return(sockfd >= 0, -EBADF);
-        assert_return(msg, -EINVAL);
-
-        return fiber_io_operation(sockfd, EPOLLIN, recvmsg_callback, &(RecvmsgArgs) {
-                .msg = msg,
-                .flags = flags,
-        });
-}
 
 typedef struct SendmsgArgs {
         const struct msghdr *msg;
         int flags;
 } SendmsgArgs;
 
-static ssize_t sendmsg_callback(int fd, void *args) {
-        SendmsgArgs *a = ASSERT_PTR(args);
-        ssize_t n;
-
-        n = sendmsg(fd, a->msg, a->flags);
-        return n >= 0 ? n : -errno;
-}
-
-ssize_t sd_fiber_sendmsg(int sockfd, const struct msghdr *msg, int flags) {
-        assert_return(sockfd >= 0, -EBADF);
-        assert_return(msg, -EINVAL);
-
-        return fiber_io_operation(sockfd, EPOLLOUT, sendmsg_callback, &(SendmsgArgs) {
-                .msg = msg,
-                .flags = flags,
-        });
-}
-
-static ssize_t recvfrom_callback(int fd, void *args) {
-        RecvmsgArgs *a = ASSERT_PTR(args);
-        ssize_t n;
-
-        n = recvmsg(fd, a->msg, a->flags);
-        return n >= 0 ? n : -errno;
-}
-
-ssize_t sd_fiber_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen) {
-        ssize_t n;
-
-        assert_return(sockfd >= 0, -EBADF);
-        assert_return(buf || len == 0, -EINVAL);
-        assert_return(!src_addr || addrlen, -EINVAL);
-
-        /* io_uring has no direct recvfrom prep helper, so emulate via recvmsg with a single-iovec
-         * msghdr. The kernel updates msg_namelen in place; we copy it back to *addrlen below. */
-        struct iovec iov = { .iov_base = buf, .iov_len = len };
-        struct msghdr msg = {
-                .msg_name = src_addr,
-                .msg_namelen = src_addr ? *addrlen : 0,
-                .msg_iov = &iov,
-                .msg_iovlen = 1,
-        };
-
-        n = fiber_io_operation(sockfd, EPOLLIN, recvfrom_callback, &(RecvmsgArgs) {
-                .msg = &msg,
-                .flags = flags,
-        });
-        if (n < 0)
-                return n;
-
-        if (addrlen)
-                *addrlen = msg.msg_namelen;
-
-        return n;
-}
-
-static ssize_t sendto_callback(int fd, void *args) {
-        SendmsgArgs *a = ASSERT_PTR(args);
-        ssize_t n;
-
-        n = sendmsg(fd, a->msg, a->flags);
-        return n >= 0 ? n : -errno;
-}
-
-ssize_t sd_fiber_sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen) {
-        assert_return(sockfd >= 0, -EBADF);
-        assert_return(buf || len == 0, -EINVAL);
-
-        struct iovec iov = { .iov_base = (void *) buf, .iov_len = len };
-        struct msghdr msg = {
-                .msg_name = (void *) dest_addr,
-                .msg_namelen = dest_addr ? addrlen : 0,
-                .msg_iov = &iov,
-                .msg_iovlen = 1,
-        };
-
-        return fiber_io_operation(sockfd, EPOLLOUT, sendto_callback, &(SendmsgArgs) {
-                .msg = &msg,
-                .flags = flags,
-        });
-}
-
 typedef struct AcceptArgs {
         struct sockaddr *addr;
         socklen_t *addrlen;
         int flags;
 } AcceptArgs;
-
-static ssize_t accept_callback(int fd, void *args) {
-        AcceptArgs *a = ASSERT_PTR(args);
-
-        return RET_NERRNO(accept4(fd, a->addr, a->addrlen, a->flags));
-}
-
-int sd_fiber_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags) {
-        assert_return(sockfd >= 0, -EBADF);
-
-        return fiber_io_operation(sockfd, EPOLLIN, accept_callback, &(AcceptArgs) {
-                .addr = addr,
-                .addrlen = addrlen,
-                .flags = flags,
-        });
-}
 
 int sd_fiber_ppoll(struct pollfd *fds, size_t n_fds, const struct timespec *timeout, const sigset_t *sigmask) {
         int r;

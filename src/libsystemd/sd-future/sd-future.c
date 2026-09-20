@@ -5,7 +5,6 @@
 #include "alloc-util.h"
 #include "errno-util.h"
 #include "log.h"
-#include "macro.h"
 #include "set.h"
 
 struct sd_future {
@@ -83,9 +82,6 @@ static sd_future* sd_future_free(sd_future *f) {
 }
 
 DEFINE_TRIVIAL_REF_UNREF_FUNC(sd_future, sd_future, sd_future_free);
-DEFINE_POINTER_ARRAY_CLEAR_FUNC(sd_future*, sd_future_unref);
-DEFINE_POINTER_ARRAY_FREE_FUNC(sd_future*, sd_future_unref);
-
 sd_future* sd_future_cancel_wait_unref(sd_future *f) {
         int r;
 
@@ -117,7 +113,6 @@ sd_future* sd_future_cancel_wait_unref(sd_future *f) {
         return sd_future_unref(f);
 }
 
-DEFINE_POINTER_ARRAY_CLEAR_FUNC(sd_future*, sd_future_cancel_wait_unref);
 DEFINE_POINTER_ARRAY_FREE_FUNC(sd_future*, sd_future_cancel_wait_unref);
 
 int sd_future_new(const sd_future_ops *ops, sd_future **ret) {

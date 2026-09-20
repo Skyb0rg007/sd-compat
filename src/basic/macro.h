@@ -48,13 +48,6 @@
 /* test harness */
 #define EXIT_TEST_SKIP 77
 
-static inline uint64_t u64_multiply_safe(uint64_t a, uint64_t b) {
-        if (_unlikely_(a != 0 && b > (UINT64_MAX / a)))
-                return 0; /* overflow */
-
-        return a * b;
-}
-
 /* align to next higher power-of-2 (except for: 0 => 0, overflow => 0) */
 static inline unsigned long ALIGN_POWER2(unsigned long u) {
 
@@ -176,10 +169,6 @@ static inline unsigned long ALIGN_POWER2(unsigned long u) {
                 typeof(limit) _y = (y);                                 \
                 _x > (limit) || _y >= (limit) - _x ? (limit) : _x + _y; \
         })
-
-static inline size_t size_add(size_t x, size_t y) {
-        return saturate_add(x, y, SIZE_MAX);
-}
 
 /* A little helper for subtracting 1 off a pointer in a safe UB-free way. This is intended to be used for
  * loops that count down from a high pointer until some base. A naive loop would implement this like this:

@@ -81,18 +81,10 @@ static inline int safe_close_above_stdio(int fd) {
         return safe_close(fd);
 }
 
-static inline void* close_fd_ptr(void *p) {
-        safe_close(PTR_TO_FD(p));
-        return NULL;
-}
-
 void close_many(const int fds[], size_t n_fds);
-void close_many_unset(int fds[], size_t n_fds);
-void close_many_and_free(int *fds, size_t n_fds);
 
 int fclose_nointr(FILE *f);
 FILE* safe_fclose(FILE *f);
-DIR* safe_closedir(DIR *d);
 
 static inline void closep(int *fd) {
         safe_close(*fd);
@@ -132,13 +124,8 @@ int close_all_fds_frugal(const int except[], size_t n_except);
 int pack_fds(int fds[], size_t n);
 
 int fd_validate(int fd);
-int same_fd(int a, int b);
-
-bool fdname_is_valid(const char *s);
 
 int fd_get_path(int fd, char **ret);
-
-int move_fd(int from, int to, int cloexec);
 
 int fd_move_above_stdio(int fd);
 
@@ -161,20 +148,10 @@ static inline int make_null_stdio(void) {
         })
 
 int fd_reopen(int fd, int flags);
-int fd_reopen_propagate_append_and_position(int fd, int flags);
-int fd_reopen_condition(int fd, int flags, int mask, int *ret_new_fd);
 
 int fd_is_opath(int fd);
-int fd_vet_accmode(int fd, int mode);
-int fd_is_writable(int fd);
-
-int fd_verify_safe_flags_full(int fd, int extra_flags);
-static inline int fd_verify_safe_flags(int fd) {
-        return fd_verify_safe_flags_full(fd, 0);
-}
 
 unsigned read_nr_open(void);
-int fd_get_diskseq(int fd, uint64_t *ret);
 
 int path_is_root_at(int dir_fd, const char *path);
 static inline int path_is_root(const char *path) {
@@ -182,9 +159,6 @@ static inline int path_is_root(const char *path) {
 }
 static inline int dir_fd_is_root(int dir_fd) {
         return dir_fd == XAT_FDROOT ? true : path_is_root_at(dir_fd, NULL);
-}
-static inline int dir_fd_is_root_or_cwd(int dir_fd) {
-        return IN_SET(dir_fd, AT_FDCWD, XAT_FDROOT) ? true : path_is_root_at(dir_fd, NULL);
 }
 
 int fds_inode_and_mount_same(int fd1, int fd2);
@@ -211,8 +185,6 @@ char* format_proc_pid_fd_path(char buf[static PROC_PID_FD_PATH_MAX], pid_t pid, 
         format_proc_pid_fd_path((char[PROC_PID_FD_PATH_MAX]) {}, (pid), (fd))
 
 int proc_fd_enoent_errno(void);
-
-const char* accmode_to_string(int flags);
 
 /* Like ASSERT_PTR, but for fds */
 #define ASSERT_FD(fd)                           \

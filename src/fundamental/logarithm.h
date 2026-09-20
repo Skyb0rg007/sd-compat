@@ -20,14 +20,6 @@ static inline unsigned log2u64(uint64_t x) {
 #endif
 }
 
-static inline unsigned u32ctz(uint32_t n) {
-#if __SIZEOF_INT__ == 4
-        return n != 0 ? __builtin_ctz(n) : 32;
-#else
-#  error "Wut?"
-#endif
-}
-
 #define popcount(n)                                             \
         _Generic((n),                                           \
                  unsigned char: __builtin_popcount(n),          \
@@ -42,10 +34,6 @@ static inline unsigned u32ctz(uint32_t n) {
                 _x > 1 ? __SIZEOF_INT__ * 8 - __builtin_clz(_x) - 1 : 0; \
         })
 #define LOG2U(x) __builtin_choose_expr(__builtin_constant_p(x), CONST_LOG2U(x), NONCONST_LOG2U(x))
-
-static inline unsigned log2i(int x) {
-        return LOG2U(x);
-}
 
 static inline unsigned log2u(unsigned x) {
         return LOG2U(x);

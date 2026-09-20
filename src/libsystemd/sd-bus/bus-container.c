@@ -1,14 +1,11 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include <unistd.h>
 
-#include "bus-container.h"
 #include "bus-internal.h"
 #include "bus-socket.h"
 #include "env-file.h"
 #include "errno-util.h"
 #include "fd-util.h"
-#include "format-util.h"
 #include "hostname-util.h"
 #include "log.h"
 #include "namespace-util.h"
@@ -16,7 +13,6 @@
 #include "path-lookup.h"
 #include "path-util.h"
 #include "process-util.h"
-#include "string-util.h"
 
 int container_get_leader(RuntimeScope scope, const char *machine, pid_t *ret) {
         _cleanup_free_ char *p = NULL, *s = NULL, *class = NULL;

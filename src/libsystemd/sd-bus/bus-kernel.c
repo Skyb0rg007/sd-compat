@@ -2,10 +2,8 @@
 
 #include <sys/mman.h>
 
-#include "bus-kernel.h"
 #include "bus-internal.h"
 #include "fd-util.h"
-#include "memory-util.h"
 
 void close_and_munmap(int fd, void *address, size_t size) {
         if (size > 0) {

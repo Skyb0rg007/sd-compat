@@ -76,14 +76,3 @@ static inline const char* glyph(Glyph code) {
         return glyph_full(code, false);
 }
 
-static inline const char* optional_glyph(Glyph code) {
-        return emoji_enabled() ? glyph(code) : "";
-}
-
-static inline const char* glyph_check_mark(bool b) {
-        return b ? glyph(GLYPH_CHECK_MARK) : glyph(GLYPH_CROSS_MARK);
-}
-
-static inline const char* glyph_check_mark_space(bool b) {
-        return b ? glyph(GLYPH_CHECK_MARK) : " ";
-}

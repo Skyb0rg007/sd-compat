@@ -28,10 +28,6 @@ typedef enum LocaleVariable {
         _VARIABLE_LC_INVALID = -EINVAL,
 } LocaleVariable;
 
-int get_locales(char ***ret);
-bool locale_is_valid(const char *name);
-int locale_is_installed(const char *name);
-
 #define _(String) dgettext(GETTEXT_PACKAGE, String)
 #define N_(String) String
 
@@ -46,8 +42,3 @@ static inline void freelocalep(locale_t *p) {
         freelocale(*p);
 }
 
-void locale_variables_free(char* l[_VARIABLE_LC_MAX]);
-static inline void locale_variables_freep(char*(*l)[_VARIABLE_LC_MAX]) {
-        locale_variables_free(*l);
-}
-void locale_variables_simplify(char *l[_VARIABLE_LC_MAX]);

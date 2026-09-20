@@ -1,36 +1,14 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include <stdlib.h>
 
 #include "ansi-color.h"
 #include "process-util.h"
 #include "string-table.h"
-#include "string-util.h"
 #include "strv.h"
 #include "terminal-util.h"
 
 static volatile int cached_color_mode = _COLOR_MODE_INVALID;
 static volatile int cached_underline_enabled = -1;
-
-bool underline_enabled(void) {
-
-        if (cached_underline_enabled < 0) {
-
-                /* The Linux console doesn't support underlining, turn it off, but only there. */
-
-                if (colors_enabled())
-                        cached_underline_enabled = !streq_ptr(getenv("TERM"), "linux");
-                else
-                        cached_underline_enabled = false;
-        }
-
-        return cached_underline_enabled;
-}
-
-void reset_ansi_feature_caches(void) {
-        cached_color_mode = _COLOR_MODE_INVALID;
-        cached_underline_enabled = -1;
-}
 
 ColorMode parse_systemd_colors(void) {
         const char *e;
@@ -125,19 +103,3 @@ DEFINE_STRING_TABLE_LOOKUP_WITH_BOOLEAN(color_mode, ColorMode, COLOR_TRUE);
  * ANSI color codes while rejecting anything that would result in garbled output (such as injecting
  * text or changing the type of escape code).
  */
-bool looks_like_ansi_color_code(const char *str) {
-        assert(str);
-
-        bool prev_char_was_digit = false;
-
-        for (char c = *str; c != '\0'; c = *(++str)) {
-                if (ascii_isdigit(c))
-                        prev_char_was_digit = true;
-                else if (prev_char_was_digit && c == ';')
-                        prev_char_was_digit = false;
-                else
-                        return false;
-        }
-
-        return prev_char_was_digit;
-}

@@ -8,7 +8,6 @@
 #include "bus-introspect.h"
 #include "bus-objects.h"
 #include "bus-signature.h"
-#include "memstream-util.h"
 #include "ordered-set.h"
 #include "string-util.h"
 

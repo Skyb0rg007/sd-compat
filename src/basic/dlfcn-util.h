@@ -5,13 +5,6 @@
 
 #include "forward.h"
 
-void* safe_dlclose(void *dl);
-
-static inline void dlclosep(void **dlp) {
-        safe_dlclose(*dlp);
-}
-
-int dlopen_verbose(void **dlp, const char *filename, int log_level);
 int dlsym_many_or_warn_sentinel(void *dl, int log_level, ...) _sentinel_;
 int dlopen_many_sym_or_warn_sentinel(void **dlp, const char *filename, int log_level, ...) _sentinel_;
 
@@ -52,4 +45,3 @@ int dlopen_many_sym_or_warn_sentinel(void **dlp, const char *filename, int log_l
  * codebase). This hence has *no* effect on NSS. (Would be great if we could change that...) */
 void block_dlopen(void);
 
-int dlopen_safe(const char *filename, void **ret, const char **reterr_dlerror);

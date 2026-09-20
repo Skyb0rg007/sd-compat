@@ -1,35 +1,23 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include <poll.h>
-#include <stdlib.h>
-#include <unistd.h>
 
 #include "sd-daemon.h"
-#include "sd-event.h"
 #include "sd-future.h"
-#include "sd-varlink.h"
 
-#include "alloc-util.h"
 #include "env-util.h"
 #include "errno-list.h"
-#include "errno-util.h"
 #include "escape.h"
 #include "extract-word.h"
 #include "fd-util.h"
-#include "format-util.h"
 #include "glyph-util.h"
 #include "hashmap.h"
 #include "json-util.h"
-#include "list.h"
-#include "log.h"
 #include "mkdir.h"
 #include "path-util.h"
 #include "pidfd-util.h"
-#include "pidref.h"
 #include "process-util.h"
 #include "socket-util.h"
 #include "string-table.h"
-#include "string-util.h"
 #include "strv.h"
 #include "time-util.h"
 #include "umask-util.h"
@@ -38,7 +26,6 @@
 #include "varlink-internal.h"
 #include "varlink-io.systemd.h"
 #include "varlink-org.varlink.service.h"
-#include "varlink-util.h"
 #include "xattr-util.h"
 
 #define VARLINK_DEFAULT_CONNECTIONS_MAX 4096U
@@ -4065,27 +4052,6 @@ _public_ int sd_varlink_server_bind_method_many_internal(sd_varlink_server *s, .
 
         va_start(ap, s);
         r = varlink_server_bind_many_internal(s, &s->methods, ap);
-        va_end(ap);
-
-        return r;
-}
-
-int varlink_server_bind_fiber(sd_varlink_server *s, const char *method, sd_varlink_method_t callback) {
-        assert_return(s, -EINVAL);
-        assert_return(method, -EINVAL);
-        assert_return(callback, -EINVAL);
-
-        return varlink_server_bind_internal(s, &s->fiber_methods, method, callback);
-}
-
-int varlink_server_bind_fiber_many_internal(sd_varlink_server *s, ...) {
-        va_list ap;
-        int r;
-
-        assert_return(s, -EINVAL);
-
-        va_start(ap, s);
-        r = varlink_server_bind_many_internal(s, &s->fiber_methods, ap);
         va_end(ap);
 
         return r;

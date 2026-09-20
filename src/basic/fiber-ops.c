@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 #include <poll.h>
-#include <threads.h>
 #include <unistd.h>
 
 #include "errno-util.h"

@@ -1,20 +1,12 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include <endian.h>
-#include <grp.h>
 #include <poll.h>
-#include <stdlib.h>
-#include <sys/inotify.h>
-#include <unistd.h>
 
 #include "sd-bus.h"
 #include "sd-daemon.h"
 
-#include "alloc-util.h"
 #include "bus-internal.h"
 #include "bus-message.h"
-#include "bus-socket.h"
-#include "errno-util.h"
 #include "escape.h"
 #include "fd-util.h"
 #include "fs-util.h"
@@ -22,13 +14,9 @@
 #include "io-util.h"
 #include "iovec-util.h"
 #include "log.h"
-#include "memory-util.h"
 #include "path-util.h"
 #include "process-util.h"
 #include "random-util.h"
-#include "stdio-util.h"
-#include "string-util.h"
-#include "time-util.h"
 #include "user-util.h"
 #include "utf8.h"
 

@@ -36,10 +36,6 @@ ColorMode parse_systemd_colors(void);
 
 bool underline_enabled(void);
 
-void reset_ansi_feature_caches(void);
-
-bool looks_like_ansi_color_code(const char *str);
-
 /* Regular colors */
 #define ANSI_BLACK   "\x1B[0;30m" /* Some type of grey usually. */
 #define ANSI_RED     "\x1B[0;31m"
@@ -160,10 +156,6 @@ DEFINE_ANSI_FUNC(highlight_magenta,     HIGHLIGHT_MAGENTA);
 DEFINE_ANSI_FUNC(highlight_cyan,        HIGHLIGHT_CYAN);
 DEFINE_ANSI_FUNC_256(highlight_grey,    HIGHLIGHT_GREY, HIGHLIGHT_GREY_FALLBACK);
 DEFINE_ANSI_FUNC(highlight_white,       HIGHLIGHT_WHITE);
-
-static inline const char* _ansi_highlight_yellow(void) {
-        return colors_enabled() ? _ANSI_HIGHLIGHT_YELLOW : "";
-}
 
 static inline const char* ansi_highlight_green_red(bool b) {
         return b ? ansi_highlight_green() : ansi_highlight_red();

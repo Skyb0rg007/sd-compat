@@ -20,10 +20,6 @@
 #define json_variant_unref_and_replace(a, b) \
         free_and_replace_full(a, b, sd_json_variant_unref)
 
-static inline int json_variant_set_field_non_null(sd_json_variant **v, const char *field, sd_json_variant *value) {
-        return value && !sd_json_variant_is_null(value) ? sd_json_variant_set_field(v, field, value) : 0;
-}
-
 struct json_variant_foreach_state {
         sd_json_variant *variant;
         size_t idx;
@@ -110,40 +106,6 @@ int json_log_internal(sd_json_variant *variant, int level, int error, const char
 
 #define json_log_oom(variant, flags) \
         json_log(variant, flags, SYNTHETIC_ERRNO(ENOMEM), "Out of memory.")
-
-int json_dispatch_unhex_iovec(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_unbase64_iovec(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_byte_array_iovec(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_user_group_name(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_const_user_group_name(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_const_unit_name(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_in_addr(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_in6_addr(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_in_addr_data(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_dual_timestamp(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_path(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_const_path(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_strv_path(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_filename(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_const_filename(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_version(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_const_version(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_pidref(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_devnum(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_ifindex(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_log_level(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_strv_environment(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_access_mode(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_job_id(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-int json_dispatch_address_family(const char *name, sd_json_variant *variant, sd_json_dispatch_flags_t flags, void *userdata);
-
-static inline int json_variant_unbase64_iovec(sd_json_variant *v, struct iovec *ret) {
-        return sd_json_variant_unbase64(v, ret ? &ret->iov_base : NULL, ret ? &ret->iov_len : NULL);
-}
-
-static inline int json_variant_unhex_iovec(sd_json_variant *v, struct iovec *ret) {
-        return sd_json_variant_unhex(v, ret ? &ret->iov_base : NULL, ret ? &ret->iov_len : NULL);
-}
 
 #define JSON_VARIANT_STRING_CONST(x) _JSON_VARIANT_STRING_CONST(UNIQ, (x))
 
@@ -290,4 +252,3 @@ int json_variant_new_fd_info(sd_json_variant **ret, int fd);
 char *json_underscorify(char *p);
 char *json_dashify(char *p);
 
-int json_variant_compare(sd_json_variant *a, sd_json_variant *b);

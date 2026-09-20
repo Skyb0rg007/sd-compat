@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include <string.h>
 
-#include "hmac.h"
 #include "memory-util.h"
 #include "sha256.h"
 

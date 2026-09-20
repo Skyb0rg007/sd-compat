@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include "alloc-util.h"
 #include "audit-util.h"
-#include "fileio.h"
 #include "parse-util.h"
 #include "pidref.h"
 #include "process-util.h"

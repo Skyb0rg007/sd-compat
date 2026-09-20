@@ -2,10 +2,7 @@
 
 #include <fcntl.h>
 #include <poll.h>
-#include <stdio.h>
-#include <string.h>
 #include <sys/epoll.h>          /* IWYU pragma: keep */
-#include <time.h>
 #include <unistd.h>
 
 #include "errno-util.h"
@@ -20,15 +17,6 @@ uint32_t poll_events_to_epoll(uint32_t events) {
                (events & POLLERR   ? EPOLLERR   : 0) |
                (events & POLLHUP   ? EPOLLHUP   : 0) |
                (events & POLLRDHUP ? EPOLLRDHUP : 0);
-}
-
-uint32_t epoll_events_to_poll(uint32_t events) {
-        return (events & EPOLLIN    ? POLLIN    : 0) |
-               (events & EPOLLOUT   ? POLLOUT   : 0) |
-               (events & EPOLLPRI   ? POLLPRI   : 0) |
-               (events & EPOLLERR   ? POLLERR   : 0) |
-               (events & EPOLLHUP   ? POLLHUP   : 0) |
-               (events & EPOLLRDHUP ? POLLRDHUP : 0);
 }
 
 int flush_fd(int fd) {
@@ -249,16 +237,6 @@ int loop_write_full(int fd, const void *buf, size_t nbytes, usec_t timeout) {
         return 0;
 }
 
-int pipe_eof(int fd) {
-        int r;
-
-        r = fd_wait_for_event(fd, POLLIN, 0);
-        if (r <= 0)
-                return r;
-
-        return !!(r & POLLHUP);
-}
-
 int ppoll_usec_full(struct pollfd *fds, size_t n_fds, usec_t timeout, const sigset_t *ss) {
         int r;
 
@@ -314,66 +292,3 @@ int fd_wait_for_event(int fd, int event, usec_t timeout) {
         return pollfd.revents;
 }
 
-static size_t nul_length(const uint8_t *p, size_t sz) {
-        size_t n = 0;
-
-        assert(p);
-
-        while (sz > 0) {
-                if (*p != 0)
-                        break;
-
-                n++;
-                p++;
-                sz--;
-        }
-
-        return n;
-}
-
-ssize_t sparse_write(int fd, const void *p, size_t sz, size_t run_length) {
-        const uint8_t *q, *w, *e;
-        ssize_t l;
-
-        q = w = p;
-        e = q + sz;
-        while (q < e) {
-                size_t n;
-
-                n = nul_length(q, e - q);
-
-                /* If there are more than the specified run length of
-                 * NUL bytes, or if this is the beginning or the end
-                 * of the buffer, then seek instead of write */
-                if ((n > run_length) ||
-                    (n > 0 && q == p) ||
-                    (n > 0 && q + n >= e)) {
-                        if (q > w) {
-                                l = write(fd, w, q - w);
-                                if (l < 0)
-                                        return -errno;
-                                if (l != q -w)
-                                        return -EIO;
-                        }
-
-                        if (lseek(fd, n, SEEK_CUR) < 0)
-                                return -errno;
-
-                        q += n;
-                        w = q;
-                } else if (n > 0)
-                        q += n;
-                else
-                        q++;
-        }
-
-        if (q > w) {
-                l = write(fd, w, q - w);
-                if (l < 0)
-                        return -errno;
-                if (l != q - w)
-                        return -EIO;
-        }
-
-        return q - (const uint8_t*) p;
-}

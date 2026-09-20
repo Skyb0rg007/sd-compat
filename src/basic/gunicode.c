@@ -24,19 +24,6 @@
  *
  * Return value: a pointer to the found character.
  **/
-char *
-utf8_prev_char (const char *p)
-{
-  assert(p);
-
-  for (;;)
-    {
-      p--;
-      if ((*p & 0xc0) != 0x80)
-        return (char *)p;
-    }
-}
-
 struct Interval
 {
   unichar start, end;

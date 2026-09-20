@@ -24,5 +24,3 @@ bool ratelimit_below(RateLimit *rl);
 
 unsigned ratelimit_num_dropped(const RateLimit *rl);
 
-usec_t ratelimit_end(const RateLimit *rl);
-usec_t ratelimit_left(const RateLimit *rl);

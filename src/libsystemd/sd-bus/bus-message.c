@@ -2,7 +2,6 @@
 
 #include "sd-bus.h"
 
-#include "alloc-util.h"
 #include "bus-internal.h"
 #include "bus-message.h"
 #include "bus-signature.h"
@@ -11,7 +10,6 @@
 #include "iovec-util.h"
 #include "log.h"
 #include "memfd-util.h"
-#include "memory-util.h"
 #include "string-util.h"
 #include "strv.h"
 #include "utf8.h"
@@ -4295,34 +4293,6 @@ _public_ int sd_bus_message_set_sender(sd_bus_message *m, const char *sender) {
         assert_return(!m->sender, -EEXIST);
 
         return message_append_field_string(m, BUS_MESSAGE_HEADER_SENDER, SD_BUS_TYPE_STRING, sender, &m->sender);
-}
-
-int bus_message_get_blob(sd_bus_message *m, void **buffer, size_t *sz) {
-        size_t total;
-        void *p, *e;
-        size_t i;
-        BusMessageBodyPart *part;
-
-        assert(m);
-        assert(buffer);
-        assert(sz);
-
-        total = BUS_MESSAGE_SIZE(m);
-
-        p = malloc(total);
-        if (!p)
-                return -ENOMEM;
-
-        e = mempcpy(p, m->header, BUS_MESSAGE_BODY_BEGIN(m));
-        MESSAGE_FOREACH_PART(part, i, m)
-                e = mempcpy(e, part->data, part->size);
-
-        assert(total == (size_t) ((uint8_t*) e - (uint8_t*) p));
-
-        *buffer = p;
-        *sz = total;
-
-        return 0;
 }
 
 _public_ int sd_bus_message_read_strv_extend(sd_bus_message *m, char ***l) {

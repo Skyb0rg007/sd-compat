@@ -2,7 +2,6 @@
 
 #include "sd-bus.h"
 
-#include "alloc-util.h"
 #include "bus-error.h"
 #include "bus-internal.h"
 #include "bus-message.h"
@@ -212,10 +211,6 @@ static bool complex_pattern_check(char c, const char *a, const char *b) {
 
                 a++, b++;
         }
-}
-
-bool namespace_complex_pattern(const char *pattern, const char *value) {
-        return complex_pattern_check('.', pattern, value);
 }
 
 bool path_complex_pattern(const char *pattern, const char *value) {

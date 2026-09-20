@@ -78,16 +78,6 @@ static inline void* memmem_safe(const void *haystack, size_t haystacklen, const 
         return memmem(haystack, haystacklen, needle, needlelen);
 }
 
-static inline void* mempmem_safe(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen) {
-        const uint8_t *p;
-
-        p = memmem_safe(haystack, haystacklen, needle, needlelen);
-        if (!p)
-                return NULL;
-
-        return (uint8_t*) p + needlelen;
-}
-
 void* erase_and_free(void *p);
 
 static inline void erase_and_freep(void *p) {
@@ -95,6 +85,3 @@ static inline void erase_and_freep(void *p) {
 }
 
 /* Use with _cleanup_ to erase a single 'char' when leaving scope */
-static inline void erase_char(char *p) {
-        explicit_bzero_safe(p, sizeof(char));
-}

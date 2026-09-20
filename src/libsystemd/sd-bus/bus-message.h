@@ -173,8 +173,6 @@ static inline void* BUS_MESSAGE_FIELDS(sd_bus_message *m) {
         return (uint8_t*) m->header + sizeof(BusMessageHeader);
 }
 
-int bus_message_get_blob(sd_bus_message *m, void **buffer, size_t *sz);
-
 int bus_message_from_malloc(
                 sd_bus *bus,
                 void *buffer,

@@ -1,11 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include <stdlib.h>
 
-#include "alloc-util.h"
 #include "fs-util.h"
 #include "log.h"
-#include "mkdir.h"
 #include "path-lookup.h"
 #include "path-util.h"
 #include "stat-util.h"
@@ -34,29 +31,6 @@ int user_search_dirs(const char *suffix, char ***ret_config_dirs, char ***ret_da
         return 0;
 }
 
-int config_directory_generic(RuntimeScope scope, const char *suffix, char **ret) {
-        assert(ret);
-
-        /* This does not bother with $CONFIGURATION_DIRECTORY, and hence can be applied to get other
-         * service's config dir */
-
-        switch (scope) {
-        case RUNTIME_SCOPE_USER:
-                return xdg_user_config_dir(suffix, ret);
-
-        case RUNTIME_SCOPE_SYSTEM: {
-                char *d = path_join("/etc", suffix);
-                if (!d)
-                        return -ENOMEM;
-                *ret = d;
-                return 0;
-        }
-
-        default:
-                return -EINVAL;
-        }
-}
-
 int runtime_directory_generic(RuntimeScope scope, const char *suffix, char **ret) {
         assert(ret);
 
@@ -69,102 +43,6 @@ int runtime_directory_generic(RuntimeScope scope, const char *suffix, char **ret
 
         case RUNTIME_SCOPE_SYSTEM: {
                 char *d = path_join("/run", suffix);
-                if (!d)
-                        return -ENOMEM;
-                *ret = d;
-                return 0;
-        }
-
-        default:
-                return -EINVAL;
-        }
-}
-
-int runtime_directory(RuntimeScope scope, const char *fallback_suffix, char **ret) {
-        int r;
-
-        assert(ret);
-
-        /* Accept $RUNTIME_DIRECTORY as authoritative, i.e. only works for our service's own runtime dir.
-         *
-         * If it's missing, apply the suffix to /run/, or $XDG_RUNTIME_DIR if we are in a user runtime scope.
-         *
-         * Return value indicates whether the suffix was applied or not. */
-
-        const char *e = secure_getenv("RUNTIME_DIRECTORY");
-        if (e)
-                return strdup_to(ret, e);
-
-        r = runtime_directory_generic(scope, fallback_suffix, ret);
-        if (r < 0)
-                return r;
-
-        return 1;
-}
-
-int runtime_directory_resolve(RuntimeScope scope, const char *suffix, const char *identifier, char **ret) {
-        _cleanup_free_ char *base = NULL, *dir = NULL;
-        int r;
-
-        assert(suffix);
-        assert(identifier);
-        assert(ret);
-
-        /* This should not be able to escape the base directory, forbid ../ and similar */
-        if (!filename_is_valid(identifier))
-                return -EINVAL;
-
-        /* Resolve a runtime directory <base>/<identifier>. The base is $RUNTIME_DIRECTORY when we run as a
-         * systemd service with RuntimeDirectory= set (the service manager prepared it for us), otherwise the
-         * provided suffix under /run (or the $XDG_RUNTIME_DIR equivalent in user scope). The per-identifier
-         * subdirectory keeps concurrent instances from colliding even when they share a base directory, and
-         * lets them use short entry names within it. */
-        r = runtime_directory(scope, suffix, &base);
-        if (r < 0)
-                return r;
-
-        dir = path_join(base, identifier);
-        if (!dir)
-                return -ENOMEM;
-
-        *ret = TAKE_PTR(dir);
-        return 0;
-}
-
-int runtime_directory_make(RuntimeScope scope, const char *suffix, const char *identifier, char **ret) {
-        _cleanup_free_ char *dir = NULL;
-        int r;
-
-        assert(ret);
-
-        r = runtime_directory_resolve(scope, suffix, identifier, &dir);
-        if (r < 0)
-                return r;
-
-        /* We always create and destroy the subdirectory ourselves, the service manager only owns the base
-         * it handed us. The caller is expected to remove the subdirectory. */
-        r = mkdir_p(dir, 0755);
-        if (r < 0)
-                return r;
-
-        *ret = TAKE_PTR(dir);
-
-        return 0;
-}
-
-int state_directory_generic(RuntimeScope scope, const char *suffix, char **ret) {
-        assert(ret);
-
-        /* This does not bother with $STATE_DIRECTORY, and hence can be applied to get other service's state
-         * dir */
-
-        switch (scope) {
-
-        case RUNTIME_SCOPE_USER:
-                return xdg_user_state_dir(suffix, ret);
-
-        case RUNTIME_SCOPE_SYSTEM: {
-                char *d = path_join("/var/lib", suffix);
                 if (!d)
                         return -ENOMEM;
                 *ret = d;
@@ -190,18 +68,6 @@ static const char* const user_config_unit_paths[] = {
         "/etc/systemd/user",
         NULL
 };
-
-bool path_is_user_data_dir(const char *path) {
-        assert(path);
-
-        return path_strv_contains((char* const*) user_data_unit_paths, path);
-}
-
-bool path_is_user_config_dir(const char *path) {
-        assert(path);
-
-        return path_strv_contains((char* const*) user_config_unit_paths, path);
-}
 
 static int acquire_generator_dirs(
                 RuntimeScope scope,
@@ -723,16 +589,6 @@ int lookup_paths_init(
         return 0;
 }
 
-int lookup_paths_init_or_warn(LookupPaths *lp, RuntimeScope scope, LookupPathsFlags flags, const char *root_dir) {
-        int r;
-
-        r = lookup_paths_init(lp, scope, flags, root_dir);
-        if (r < 0)
-                return log_error_errno(r, "Failed to initialize unit search paths%s%s: %m",
-                                       isempty(root_dir) ? "" : " for root directory ", strempty(root_dir));
-        return r;
-}
-
 void lookup_paths_done(LookupPaths *lp) {
         assert(lp);
 
@@ -755,20 +611,6 @@ void lookup_paths_done(LookupPaths *lp) {
 
         lp->root_dir = mfree(lp->root_dir);
         lp->temporary_dir = mfree(lp->temporary_dir);
-}
-
-void lookup_paths_log(LookupPaths *lp) {
-        assert(lp);
-
-        if (strv_isempty(lp->search_path)) {
-                log_debug("Ignoring unit files.");
-                lp->search_path = strv_free(lp->search_path);
-        } else {
-                _cleanup_free_ char *t = NULL;
-
-                t = strv_join(lp->search_path, "\n\t");
-                log_debug("Looking for unit files in (higher priority first):\n\t%s", strna(t));
-        }
 }
 
 static const char* const system_generator_paths[] = {

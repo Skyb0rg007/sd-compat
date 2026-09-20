@@ -42,14 +42,6 @@ static inline char* cescape(const char *s) {
 
 int cunescape_one(const char *p, size_t length, char32_t *ret, bool *eight_bit, bool accept_nul);
 
-ssize_t cunescape_length_with_prefix(const char *s, size_t length, const char *prefix, UnescapeFlags flags, char **ret);
-static inline ssize_t cunescape_length(const char *s, size_t length, UnescapeFlags flags, char **ret) {
-        return cunescape_length_with_prefix(s, length, NULL, flags, ret);
-}
-static inline ssize_t cunescape(const char *s, UnescapeFlags flags, char **ret) {
-        return cunescape_length(s, SIZE_MAX, flags, ret);
-}
-
 typedef enum XEscapeFlags {
         XESCAPE_8_BIT          = 1 << 0,
         XESCAPE_FORCE_ELLIPSIS = 1 << 1,
@@ -63,8 +55,6 @@ char* octescape_full(const char *s, size_t len, const char *bad);
 static inline char* octescape(const char *s, size_t len) {
         return octescape_full(s, len, NULL);
 }
-char* decescape(const char *s, size_t len, const char *bad) _nonnull_if_nonzero_(1, 2);
-char* escape_non_printable_full(const char *str, size_t console_width, XEscapeFlags flags);
 
 char* shell_escape(const char *s, const char *bad);
 char* shell_maybe_quote(const char *s, ShellEscapeFlags flags);

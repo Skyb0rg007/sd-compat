@@ -56,30 +56,8 @@ static inline int strcmp_ptr(const sd_char *a, const sd_char *b) {
         return CMP(a, b);
 }
 
-static inline int strncmp_ptr(const sd_char *a, const sd_char *b, size_t n) {
-        if (a && b)
-                return strncmp(a, b, n);
-
-        return CMP(a, b);
-}
-
-static inline int strcasecmp_ptr(const sd_char *a, const sd_char *b) {
-        if (a && b)
-                return strcasecmp(a, b);
-
-        return CMP(a, b);
-}
-
 static inline bool streq_ptr(const sd_char *a, const sd_char *b) {
         return strcmp_ptr(a, b) == 0;
-}
-
-static inline bool strneq_ptr(const sd_char *a, const sd_char *b, size_t n) {
-        return strncmp_ptr(a, b, n) == 0;
-}
-
-static inline bool strcaseeq_ptr(const sd_char *a, const sd_char *b) {
-        return strcasecmp_ptr(a, b) == 0;
 }
 
 static inline size_t strlen_ptr(const sd_char *s) {
@@ -113,16 +91,6 @@ static inline const sd_char *yes_no(bool b) {
         return b ? STR_C("yes") : STR_C("no");
 }
 
-static inline const sd_char *on_off(bool b) {
-        return b ? STR_C("on") : STR_C("off");
-}
-
-static inline const sd_char* comparison_operator(int result) {
-        return result < 0 ? STR_C("<") : result > 0 ? STR_C(">") : STR_C("==");
-}
-
-int strverscmp_improved(const sd_char *a, const sd_char *b);
-
 /* Like startswith(), but operates on arbitrary memory blocks */
 static inline void *memory_startswith(const void *p, size_t sz, const sd_char *token) {
         assert(token);
@@ -142,10 +110,6 @@ static inline void *memory_startswith(const void *p, size_t sz, const sd_char *t
 static inline bool ascii_isdigit(sd_char a) {
         /* A pure ASCII, locale independent version of isdigit() */
         return a >= '0' && a <= '9';
-}
-
-static inline bool ascii_ishex(sd_char a) {
-        return ascii_isdigit(a) || (a >= 'a' && a <= 'f') || (a >= 'A' && a <= 'F');
 }
 
 static inline bool ascii_isalpha(sd_char a) {

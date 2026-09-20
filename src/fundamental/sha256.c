@@ -27,7 +27,6 @@
 #  include <string.h>
 #endif
 
-#include "assert-util.h"
 #include "memory-util.h"
 #include "sha256.h"
 #include "unaligned.h"

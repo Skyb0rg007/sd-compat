@@ -1,19 +1,9 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include <fcntl.h>
-#include <linux/fs.h>
-#include <sys/ioctl.h>
-#include <sys/kcmp.h>
 #include <sys/resource.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
-#include "alloc-util.h"
-#include "dirent-util.h"
 #include "errno-util.h"
 #include "fd-util.h"
-#include "fileio.h"
-#include "format-util.h"
 #include "fs-util.h"
 #include "log.h"
 #include "parse-util.h"
@@ -21,8 +11,6 @@
 #include "process-util.h"
 #include "sort-util.h"
 #include "stat-util.h"
-#include "stdio-util.h"
-#include "string-util.h"
 
 /* The maximum number of iterations in the loop to close descriptors in the fallback case
  * when /proc/self/fd/ is inaccessible. */
@@ -92,20 +80,6 @@ void close_many(const int fds[], size_t n_fds) {
                 safe_close(*fd);
 }
 
-void close_many_unset(int fds[], size_t n_fds) {
-        assert(fds || n_fds == 0);
-
-        FOREACH_ARRAY(fd, fds, n_fds)
-                *fd = safe_close(*fd);
-}
-
-void close_many_and_free(int *fds, size_t n_fds) {
-        assert(fds || n_fds == 0);
-
-        close_many(fds, n_fds);
-        free(fds);
-}
-
 int fclose_nointr(FILE *f) {
         assert(f);
 
@@ -131,17 +105,6 @@ FILE* safe_fclose(FILE *f) {
                 PROTECT_ERRNO;
 
                 assert_se(fclose_nointr(f) != -EBADF);
-        }
-
-        return NULL;
-}
-
-DIR* safe_closedir(DIR *d) {
-
-        if (d) {
-                PROTECT_ERRNO;
-
-                assert_se(closedir(d) >= 0 || errno != EBADF);
         }
 
         return NULL;
@@ -463,121 +426,6 @@ int fd_validate(int fd) {
         return 0;
 }
 
-int same_fd(int a, int b) {
-        struct stat sta, stb;
-        pid_t pid;
-        int r, fa, fb;
-
-        assert(a >= 0);
-        assert(b >= 0);
-
-        /* Compares two file descriptors. Note that semantics are quite different depending on whether we
-         * have F_DUPFD_QUERY/kcmp() or we don't. If we have F_DUPFD_QUERY/kcmp() this will only return true
-         * for dup()ed file descriptors, but not otherwise. If we don't have F_DUPFD_QUERY/kcmp() this will
-         * also return true for two fds of the same file, created by separate open() calls. Since we use this
-         * call mostly for filtering out duplicates in the fd store this difference hopefully doesn't matter
-         * too much.
-         *
-         * Guarantees that if either of the passed fds is not allocated we'll return -EBADF. */
-
-        if (a == b) {
-                /* Let's validate that the fd is valid */
-                r = fd_validate(a);
-                if (r < 0)
-                        return r;
-
-                return true;
-        }
-
-        /* Try to use F_DUPFD_QUERY if we have it first, as it is the nicest API */
-        r = fcntl(a, F_DUPFD_QUERY, b);
-        if (r > 0)
-                return true;
-        if (r == 0) {
-                /* The kernel will return 0 in case the first fd is allocated, but the 2nd is not. (Which is different in the kcmp() case) Explicitly validate it hence. */
-                r = fd_validate(b);
-                if (r < 0)
-                        return r;
-
-                return false;
-        }
-        /* On old kernels (< 6.10) that do not support F_DUPFD_QUERY this will return EINVAL for regular fds, and EBADF on O_PATH fds. Confusing. */
-        if (errno == EBADF) {
-                /* EBADF could mean two things: the first fd is not valid, or it is valid and is O_PATH and
-                 * F_DUPFD_QUERY is not supported. Let's validate the fd explicitly, to distinguish this
-                 * case. */
-                r = fd_validate(a);
-                if (r < 0)
-                        return r;
-
-                /* If the fd is valid, but we got EBADF, then let's try kcmp(). */
-        } else if (!ERRNO_IS_NOT_SUPPORTED(errno) && !ERRNO_IS_PRIVILEGE(errno) && errno != EINVAL)
-                return -errno;
-
-        /* Try to use kcmp() if we have it. */
-        pid = getpid_cached();
-        r = kcmp(pid, pid, KCMP_FILE, a, b);
-        if (r >= 0)
-                return !r;
-        if (!ERRNO_IS_NOT_SUPPORTED(errno) && !ERRNO_IS_PRIVILEGE(errno))
-                return -errno;
-
-        /* We have neither F_DUPFD_QUERY nor kcmp(), use fstat() instead. */
-        if (fstat(a, &sta) < 0)
-                return -errno;
-
-        if (fstat(b, &stb) < 0)
-                return -errno;
-
-        if (!stat_inode_same(&sta, &stb))
-                return false;
-
-        /* We consider all device fds different, since two device fds might refer to quite different device
-         * contexts even though they share the same inode and backing dev_t. */
-
-        if (S_ISCHR(sta.st_mode) || S_ISBLK(sta.st_mode))
-                return false;
-
-        /* The fds refer to the same inode on disk, let's also check if they have the same fd flags. This is
-         * useful to distinguish the read and write side of a pipe created with pipe(). */
-        fa = fcntl(a, F_GETFL);
-        if (fa < 0)
-                return -errno;
-
-        fb = fcntl(b, F_GETFL);
-        if (fb < 0)
-                return -errno;
-
-        return fa == fb;
-}
-
-bool fdname_is_valid(const char *s) {
-        const char *p;
-
-        /* Validates a name for $LISTEN_FDNAMES. We basically allow
-         * everything ASCII that's not a control character. Also, as
-         * special exception the ":" character is not allowed, as we
-         * use that as field separator in $LISTEN_FDNAMES.
-         *
-         * Note that the empty string is explicitly allowed
-         * here. However, we limit the length of the names to 255
-         * characters. */
-
-        if (!s)
-                return false;
-
-        for (p = s; *p; p++) {
-                if (*p < ' ')
-                        return false;
-                if (*p >= 127)
-                        return false;
-                if (*p == ':')
-                        return false;
-        }
-
-        return p - s <= FDNAME_MAX;
-}
-
 int fd_get_path(int fd, char **ret) {
         int r;
 
@@ -592,50 +440,6 @@ int fd_get_path(int fd, char **ret) {
         if (r == -ENOENT)
                 return proc_fd_enoent_errno();
         return r;
-}
-
-int move_fd(int from, int to, int cloexec) {
-        int r;
-
-        /* Move fd 'from' to 'to', make sure FD_CLOEXEC remains equal if requested, and release the old fd. If
-         * 'cloexec' is passed as -1, the original FD_CLOEXEC is inherited for the new fd. If it is 0, it is turned
-         * off, if it is > 0 it is turned on. */
-
-        if (from < 0)
-                return -EBADF;
-        if (to < 0)
-                return -EBADF;
-
-        if (from == to) {
-
-                if (cloexec >= 0) {
-                        r = fd_cloexec(to, cloexec);
-                        if (r < 0)
-                                return r;
-                }
-
-                return to;
-        }
-
-        if (cloexec < 0) {
-                int fl;
-
-                fl = fcntl(from, F_GETFD, 0);
-                if (fl < 0)
-                        return -errno;
-
-                cloexec = FLAGS_SET(fl, FD_CLOEXEC);
-        }
-
-        r = dup3(from, to, cloexec ? O_CLOEXEC : 0);
-        if (r < 0)
-                return -errno;
-
-        assert(r == to);
-
-        safe_close(from);
-
-        return to;
 }
 
 int fd_move_above_stdio(int fd) {
@@ -827,79 +631,6 @@ int fd_reopen(int fd, int flags) {
         return new_fd;
 }
 
-int fd_reopen_propagate_append_and_position(int fd, int flags) {
-        /* Invokes fd_reopen(fd, flags), but propagates O_APPEND if set on original fd, and also tries to
-         * keep current file position.
-         *
-         * You should use this if the original fd potentially is O_APPEND, otherwise we get rather
-         * "unexpected" behavior. Unless you intentionally want to overwrite pre-existing data, and have
-         * your output overwritten by the next user.
-         *
-         * Use case: "systemd-run --pty >> some-log".
-         *
-         * The "keep position" part is obviously nonsense for the O_APPEND case, but should reduce surprises
-         * if someone carefully pre-positioned the passed in original input or non-append output FDs. */
-
-        assert(fd >= 0);
-        assert(!(flags & (O_APPEND|O_DIRECTORY)));
-
-        int existing_flags = fcntl(fd, F_GETFL);
-        if (existing_flags < 0)
-                return -errno;
-
-        int new_fd = fd_reopen(fd, flags | (existing_flags & O_APPEND));
-        if (new_fd < 0)
-                return new_fd;
-
-        /* Try to adjust the offset, but ignore errors. */
-        off_t p = lseek(fd, 0, SEEK_CUR);
-        if (p > 0) {
-                off_t new_p = lseek(new_fd, p, SEEK_SET);
-                if (new_p < 0)
-                        log_debug_errno(errno,
-                                        "Failed to propagate file position for re-opened fd %d, ignoring: %m",
-                                        fd);
-                else if (new_p != p)
-                        log_debug("Failed to propagate file position for re-opened fd %d (%lld != %lld), ignoring.",
-                                  fd, (long long) new_p, (long long) p);
-        }
-
-        return new_fd;
-}
-
-int fd_reopen_condition(
-                int fd,
-                int flags,
-                int mask,
-                int *ret_new_fd) {
-
-        int r, new_fd;
-
-        assert(fd >= 0);
-        assert(!FLAGS_SET(flags, O_CREAT));
-        assert(ret_new_fd);
-
-        /* Invokes fd_reopen(fd, flags), but only if the existing F_GETFL flags don't match the specified
-         * flags (masked by the specified mask). This is useful for converting O_PATH fds into real fds if
-         * needed, but only then. */
-
-        r = fcntl(fd, F_GETFL);
-        if (r < 0)
-                return -errno;
-
-        if ((r & mask) == (flags & mask)) {
-                *ret_new_fd = -EBADF;
-                return fd;
-        }
-
-        new_fd = fd_reopen(fd, flags);
-        if (new_fd < 0)
-                return new_fd;
-
-        *ret_new_fd = new_fd;
-        return new_fd;
-}
-
 int fd_is_opath(int fd) {
         int r;
 
@@ -910,91 +641,6 @@ int fd_is_opath(int fd) {
                 return -errno;
 
         return FLAGS_SET(r, O_PATH);
-}
-
-int fd_vet_accmode(int fd, int mode) {
-        int flags;
-
-        /* Check if fd is opened with desired access mode.
-         *
-         * Returns > 0 on strict match, == 0 if opened for both reading and writing (partial match),
-         * -EPROTOTYPE otherwise. O_PATH fds are always refused with -EBADFD.
-         *
-         * Note that while on O_DIRECTORY -EISDIR will be returned, this should not be relied upon as
-         * the flag might not have been specified when open() was called originally. */
-
-        assert(fd >= 0);
-        assert(IN_SET(mode, O_RDONLY, O_WRONLY, O_RDWR));
-
-        flags = fcntl(fd, F_GETFL);
-        if (flags < 0)
-                return -errno;
-
-        /* O_TMPFILE in userspace is defined with O_DIRECTORY OR'ed in, so explicitly permit it.
-         *
-         * C.f. https://elixir.bootlin.com/linux/v6.17.7/source/include/uapi/asm-generic/fcntl.h#L92 */
-        if (FLAGS_SET(flags, O_DIRECTORY) && !FLAGS_SET(flags, O_TMPFILE))
-                return -EISDIR;
-
-        if (FLAGS_SET(flags, O_PATH))
-                return -EBADFD;
-
-        flags &= O_ACCMODE_STRICT;
-
-        if (flags == mode)
-                return 1;
-
-        if (flags == O_RDWR)
-                return 0;
-
-        return -EPROTOTYPE;
-}
-
-int fd_is_writable(int fd) {
-        int r;
-
-        assert(fd >= 0);
-
-        r = fd_vet_accmode(fd, O_WRONLY);
-        if (r >= 0)
-                return true;
-
-        if (IN_SET(r, -EPROTOTYPE, -EBADFD, -EISDIR))
-                return false;
-
-        return r;
-}
-
-int fd_verify_safe_flags_full(int fd, int extra_flags) {
-        int flags, unexpected_flags;
-
-        /* Check if an extrinsic fd is safe to work on (by a privileged service). This ensures that clients
-         * can't trick a privileged service into giving access to a file the client doesn't already have
-         * access to (especially via something like O_PATH).
-         *
-         * O_NOFOLLOW: For some reason the kernel will return this flag from fcntl(); it doesn't go away
-         *             immediately after open(). It should have no effect whatsoever to an already-opened FD,
-         *             and since we refuse O_PATH it should be safe.
-         *
-         * RAW_O_LARGEFILE: glibc secretly sets this and neglects to hide it from us if we call fcntl.
-         *                  See comment in src/basic/include/fcntl.h for more details about this.
-         *
-         * If 'extra_flags' is specified as non-zero the included flags are also allowed.
-         */
-
-        assert(fd >= 0);
-
-        flags = fcntl(fd, F_GETFL);
-        if (flags < 0)
-                return -errno;
-
-        unexpected_flags = flags & ~(O_ACCMODE_STRICT|O_NOFOLLOW|RAW_O_LARGEFILE|extra_flags);
-        if (unexpected_flags != 0)
-                return log_debug_errno(SYNTHETIC_ERRNO(EREMOTEIO),
-                                       "Unexpected flags set for extrinsic fd: 0%o",
-                                       (unsigned) unexpected_flags);
-
-        return flags & (O_ACCMODE_STRICT | extra_flags); /* return the flags variable, but remove the noise */
 }
 
 unsigned read_nr_open(void) {
@@ -1019,27 +665,6 @@ unsigned read_nr_open(void) {
 
         /* If we fail, fall back to the hard-coded kernel limit of 1024 * 1024. */
         return NR_OPEN_DEFAULT;
-}
-
-int fd_get_diskseq(int fd, uint64_t *ret) {
-        uint64_t diskseq;
-
-        assert(fd >= 0);
-        assert(ret);
-
-        if (ioctl(fd, BLKGETDISKSEQ, &diskseq) < 0) {
-                /* Note that the kernel is weird: non-existing ioctls currently return EINVAL
-                 * rather than ENOTTY on loopback block devices. They should fix that in the kernel,
-                 * but in the meantime we accept both here. */
-                if (!ERRNO_IS_NOT_SUPPORTED(errno) && errno != EINVAL)
-                        return -errno;
-
-                return -EOPNOTSUPP;
-        }
-
-        *ret = diskseq;
-
-        return 0;
 }
 
 static bool is_literal_root(const char *p) {
@@ -1141,27 +766,6 @@ char* format_proc_fd_path(char buf[static PROC_FD_PATH_MAX], int fd) {
         assert(buf);
         assert(fd >= 0);
         assert_se(snprintf_ok(buf, PROC_FD_PATH_MAX, "/proc/self/fd/%i", fd));
-        return buf;
-}
-
-const char* accmode_to_string(int flags) {
-        switch (flags & O_ACCMODE_STRICT) {
-        case O_RDONLY:
-                return "ro";
-        case O_WRONLY:
-                return "wo";
-        case O_RDWR:
-                return "rw";
-        default:
-                return NULL;
-        }
-}
-
-char* format_proc_pid_fd_path(char buf[static PROC_PID_FD_PATH_MAX], pid_t pid, int fd) {
-        assert(buf);
-        assert(fd >= 0);
-        assert(pid >= 0);
-        assert_se(snprintf_ok(buf, PROC_PID_FD_PATH_MAX, "/proc/" PID_FMT "/fd/%i", pid == 0 ? getpid_cached() : pid, fd));
         return buf;
 }
 

@@ -2,19 +2,14 @@
 
 #include <linux/magic.h>
 #include <sys/ioctl.h>
-#include <threads.h>
-#include <unistd.h>
 
 #include "errno-util.h"
 #include "fd-util.h"
-#include "fileio.h"
 #include "mountpoint-util.h"
 #include "parse-util.h"
 #include "pidfd-util.h"
 #include "process-util.h"
 #include "stat-util.h"
-#include "stdio-util.h"
-#include "string-util.h"
 
 static thread_local int have_pidfs = -1;
 
@@ -90,48 +85,6 @@ int pidfd_get_info(int fd, struct pidfd_info *info) {
         }
 
         return 0;
-}
-
-int pidfd_info_mask_is_supported(uint64_t mask) {
-        static thread_local uint64_t cached_mask = 0;
-        static thread_local int cached = 0; /* 0 when not cached, 1 when cached, negative errno on failure. */
-        int r;
-
-        if (cached < 0)
-                return cached;
-
-        if (cached == 0) {
-                _cleanup_close_ int pidfd = r = RET_NERRNO(pidfd_open(getpid_cached(), /* flags= */ 0));
-                if (r < 0)
-                        return r;
-
-                struct pidfd_info info = {
-                        .mask = PIDFD_INFO_SUPPORTED_MASK, /* Since dfd78546c95330db2252e0d7e937a15ab5eddb4e (v6.19). */
-                };
-
-                r = pidfd_get_info(pidfd, &info);
-                if (r == -EOPNOTSUPP)
-                        return (cached = -EOPNOTSUPP);
-                if (r < 0)
-                        return r;
-
-                if (FLAGS_SET(info.mask, PIDFD_INFO_SUPPORTED_MASK) &&
-                    FLAGS_SET(info.supported_mask, PIDFD_INFO_SUPPORTED_MASK))
-                        /* The kernel is v6.19 or newer. Let's use the provided supported_mask. */
-                        cached_mask = info.supported_mask;
-                else
-                        /* The kernel is older than v6.19. These three flags have been supported since
-                         * ioctl(PIDFD_GET_INFO) was introduced, so a successful pidfd_get_info() call
-                         * guarantees they are supported. However, there is no reliable way to
-                         * determine whether PIDFD_INFO_EXIT and PIDFD_INFO_COREDUMP are supported, as
-                         * they predate PIDFD_INFO_SUPPORTED_MASK, so assume they are not. */
-                        cached_mask = PIDFD_INFO_PID | PIDFD_INFO_CREDS | PIDFD_INFO_CGROUPID;
-
-                cached = true;
-        }
-
-        /* Return true when all requested features are supported. */
-        return FLAGS_SET(cached_mask, mask);
 }
 
 static int pidfd_get_pid_fdinfo(int fd, pid_t *ret) {
@@ -214,60 +167,6 @@ int pidfd_verify_pid(int pidfd, pid_t pid) {
                 return r;
 
         return current_pid != pid ? -ESRCH : 0;
-}
-
-int pidfd_get_ppid(int fd, pid_t *ret) {
-        struct pidfd_info info = { .mask = PIDFD_INFO_PID };
-        int r;
-
-        assert(fd >= 0);
-
-        r = pidfd_get_info(fd, &info);
-        if (r < 0)
-                return r;
-
-        assert(FLAGS_SET(info.mask, PIDFD_INFO_PID));
-
-        if (info.ppid == 0) /* See comments in pid_get_ppid() */
-                return -EADDRNOTAVAIL;
-
-        if (ret)
-                *ret = info.ppid;
-        return 0;
-}
-
-int pidfd_get_uid(int fd, uid_t *ret) {
-        struct pidfd_info info = { .mask = PIDFD_INFO_CREDS };
-        int r;
-
-        assert(fd >= 0);
-
-        r = pidfd_get_info(fd, &info);
-        if (r < 0)
-                return r;
-
-        assert(FLAGS_SET(info.mask, PIDFD_INFO_CREDS));
-
-        if (ret)
-                *ret = info.ruid;
-        return 0;
-}
-
-int pidfd_get_cgroupid(int fd, uint64_t *ret) {
-        struct pidfd_info info = { .mask = PIDFD_INFO_CGROUPID };
-        int r;
-
-        assert(fd >= 0);
-
-        r = pidfd_get_info(fd, &info);
-        if (r < 0)
-                return r;
-
-        assert(FLAGS_SET(info.mask, PIDFD_INFO_CGROUPID));
-
-        if (ret)
-                *ret = info.cgroupid;
-        return 0;
 }
 
 int pidfd_get_inode_id_impl(int fd, uint64_t *ret) {

@@ -1,16 +1,11 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#include <pthread.h>
 #include <setjmp.h>
 #include <sys/mman.h>
 #include <sys/resource.h>
-#include <sys/uio.h>
-#include <threads.h>
 #include <ucontext.h>
-#include <unistd.h>
 
 #if HAVE_VALGRIND_VALGRIND_H
-#include <valgrind/valgrind.h>
 #endif
 
 #include "sd-event.h"
@@ -23,12 +18,9 @@
 #include "fiber-ops.h"
 #include "log-context.h"
 #include "log.h"
-#include "memory-util.h"
 #include "pthread-util.h"
-#include "time-util.h"
 
 #if HAS_FEATURE_ADDRESS_SANITIZER
-#include <sanitizer/common_interface_defs.h>
 #endif
 
 /* glibc's _FORTIFY_SOURCE wraps siglongjmp() with __longjmp_chk, which asserts that the target SP is below
@@ -559,11 +551,6 @@ static int fiber_swap(FiberState state) {
         return TAKE_GENERIC(f->result, int, 0);
 }
 
-int sd_fiber_yield(void) {
-        assert_return(fiber_get_current(), -ESRCH);
-        return fiber_swap(FIBER_STATE_READY);
-}
-
 int sd_fiber_suspend(void) {
         assert_return(fiber_get_current(), -ESRCH);
         return fiber_swap(FIBER_STATE_SUSPENDED);
@@ -735,45 +722,6 @@ int sd_fiber_set_floating(sd_future *f, int b) {
                 fiber->floating = sd_future_unref(fiber->floating);
 
         return 0;
-}
-
-int sd_fiber_get_floating(sd_future *f) {
-        assert_return(f, -EINVAL);
-        assert_return(sd_future_get_ops(f) == &fiber_future_ops, -EINVAL);
-
-        Fiber *fiber = ASSERT_PTR(sd_future_get_private(f));
-        return !!fiber->floating;
-}
-
-int sd_fiber_sleep(uint64_t usec) {
-        Fiber *f = fiber_get_current();
-        int r;
-
-        if (!f)
-                return usleep_safe(usec);
-
-        if (usec == 0)
-                return sd_fiber_yield();
-
-        /* Match usleep_safe(USEC_INFINITY): suspend indefinitely. Passing USEC_INFINITY to
-         * sd_event_add_time_relative() would overflow into -EOVERFLOW. */
-        if (usec == USEC_INFINITY)
-                return sd_fiber_suspend();
-
-        assert(f->event);
-
-        _cleanup_(sd_future_cancel_wait_unrefp) sd_future *timer = NULL;
-        r = future_new_time_relative(
-                        f->event,
-                        CLOCK_MONOTONIC,
-                        usec,
-                        /* accuracy= */ 1,
-                        /* result= */ 0,
-                        &timer);
-        if (r < 0)
-                return r;
-
-        return sd_fiber_suspend();
 }
 
 int sd_fiber_await(sd_future *target) {

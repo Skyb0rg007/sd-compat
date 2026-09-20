@@ -2,7 +2,6 @@
 
 #include "format-ifname.h"
 #include "stdio-util.h"
-#include "string-util.h"
 
 assert_cc(STRLEN("%") + DECIMAL_STR_MAX(int) <= IF_NAMESIZE);
 
@@ -24,15 +23,3 @@ int format_ifname_full(int ifindex, FormatIfnameFlag flag, char buf[static IF_NA
         return 0;
 }
 
-int format_ifname_full_alloc(int ifindex, FormatIfnameFlag flag, char **ret) {
-        char buf[IF_NAMESIZE];
-        int r;
-
-        assert(ret);
-
-        r = format_ifname_full(ifindex, flag, buf);
-        if (r < 0)
-                return r;
-
-        return strdup_to(ret, buf);
-}

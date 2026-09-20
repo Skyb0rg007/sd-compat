@@ -17,4 +17,3 @@
 
 bool session_id_valid(const char *id) _pure_;
 
-bool logind_running(void);

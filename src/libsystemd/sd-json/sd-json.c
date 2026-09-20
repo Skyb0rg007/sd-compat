@@ -1,15 +1,11 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
 #include <locale.h>
-#include <stdlib.h>
 
-#include "sd-json.h"
 #include "sd-messages.h"
 
-#include "alloc-util.h"
 #include "ansi-color.h"
 #include "env-util.h"
-#include "errno-util.h"
 #include "escape.h"
 #include "ether-addr-util.h"
 #include "fd-util.h"
@@ -19,9 +15,7 @@
 #include "in-addr-util.h"
 #include "json-internal.h"
 #include "json-util.h"
-#include "log.h"
 #include "math-util.h"
-#include "memory-util.h"
 #include "memstream-util.h"
 #include "ordered-set.h"
 #include "parse-util.h"
@@ -29,7 +23,6 @@
 #include "ratelimit.h"
 #include "signal-util.h"
 #include "string-table.h"
-#include "string-util.h"
 #include "strv.h"
 #include "terminal-util.h"
 #include "time-util.h"
@@ -3577,18 +3570,6 @@ char *json_underscorify(char *p) {
 
         for (char *q = p; *q; q++)
                 *q = IN_SET(*q, '_', '-', '+') ? '_' : *q;
-
-        return p;
-}
-
-char *json_dashify(char *p) {
-        if (!p)
-                return NULL;
-
-        /* Replaces "-", "+" by "-", to (somewhat) undo what json_underscorify() does */
-
-        for (char *q = p; *q; q++)
-                *q = IN_SET(*q, '_', '-', '+') ? '-' : *q;
 
         return p;
 }

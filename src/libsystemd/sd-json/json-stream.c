@@ -1,25 +1,17 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
 #include <poll.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #include "sd-event.h"
 #include "sd-json.h"
 
-#include "alloc-util.h"
-#include "errno-util.h"
 #include "fd-util.h"
 #include "io-util.h"
 #include "iovec-util.h"
 #include "json-stream.h"
-#include "list.h"
-#include "log.h"
-#include "memory-util.h"
 #include "process-util.h"
 #include "socket-util.h"
-#include "string-util.h"
 #include "time-util.h"
 #include "user-util.h"
 

@@ -84,13 +84,9 @@ int bus_match_remove(BusMatchNode *root, BusMatchCallback *callback);
 
 void bus_match_free(BusMatchNode *node);
 
-void bus_match_dump(FILE *out, BusMatchNode *node, unsigned level);
-
-const char* bus_match_node_type_to_string(BusMatchNodeType t, char buf[], size_t l);
 BusMatchNodeType bus_match_node_type_from_string(const char *k, size_t n);
 
 int bus_match_parse(const char *match, BusMatchComponent **ret_components, size_t *ret_n_components);
 void bus_match_parse_free(BusMatchComponent *components, size_t n_components);
-char* bus_match_to_string(BusMatchComponent *components, size_t n_components);
 
 BusMatchScope bus_match_get_scope(const BusMatchComponent *components, size_t n_components);

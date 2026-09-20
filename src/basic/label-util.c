@@ -4,20 +4,6 @@
 
 static const LabelOps *label_ops = NULL;
 
-int label_ops_set(const LabelOps *ops) {
-        assert(ops);
-
-        if (label_ops)
-                return -EBUSY;
-
-        label_ops = ops;
-        return 0;
-}
-
-void label_ops_reset(void) {
-        label_ops = NULL;
-}
-
 int label_ops_pre(int dir_fd, const char *path, mode_t mode, LabelContext *label_context) {
         if (!label_ops || !label_ops->pre)
                 return 0;
