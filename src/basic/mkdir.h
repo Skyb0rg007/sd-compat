@@ -9,6 +9,11 @@ typedef enum MkdirFlags {
         MKDIR_WARN_MODE       = 1 << 2,  /* Log at LOG_WARNING when mode doesn't match */
 } MkdirFlags;
 
+/* Flags mkdirat_safe_internal() no longer implements. Note that MKDIR_IGNORE_EXISTING is not among them,
+ * but is now mandatory there: mkdirat_parents_internal(), its only caller, always sets it, so the checks
+ * that ran when it was unset became unreachable and were dropped. */
+#define MKDIR_UNSUPPORTED (MKDIR_FOLLOW_SYMLINK|MKDIR_WARN_MODE)
+
 int mkdirat_errno_wrapper(int dirfd, const char *pathname, mode_t mode, LabelContext *label_context);
 
 int mkdirat_parents(int dir_fd, const char *path, mode_t mode);

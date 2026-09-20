@@ -1,11 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
 
-#include "chase.h"
 #include "fd-util.h"
-#include "format-util.h"
 #include "fs-util.h"
-#include "log.h"
 #include "mkdir.h"
 #include "path-util.h"
 #include "stat-util.h"
@@ -28,6 +25,8 @@ int mkdirat_safe_internal(
         assert(path);
         assert(mode != MODE_INVALID);
         assert(_mkdirat);
+        assert((flags & MKDIR_UNSUPPORTED) == 0);
+        assert(FLAGS_SET(flags, MKDIR_IGNORE_EXISTING));
 
         r = _mkdirat(dir_fd, path, mode, label_context);
         if (r >= 0)
@@ -35,42 +34,9 @@ int mkdirat_safe_internal(
         if (r != -EEXIST)
                 return r;
 
+        /* MKDIR_IGNORE_EXISTING: we accept whatever is already there, but it has to still exist. */
         if (fstatat(dir_fd, path, &st, AT_SYMLINK_NOFOLLOW) < 0)
                 return -errno;
-
-        if ((flags & MKDIR_FOLLOW_SYMLINK) && S_ISLNK(st.st_mode)) {
-                _cleanup_free_ char *p = NULL;
-
-                r = chaseat(XAT_FDROOT, dir_fd, path, CHASE_NONEXISTENT, &p, NULL);
-                if (r < 0)
-                        return r;
-                if (r == 0)
-                        return mkdirat_safe_internal(dir_fd, p, mode, uid, gid,
-                                                     flags & ~MKDIR_FOLLOW_SYMLINK,
-                                                     _mkdirat, label_context);
-
-                if (fstatat(dir_fd, p, &st, AT_SYMLINK_NOFOLLOW) < 0)
-                        return -errno;
-        }
-
-        if (flags & MKDIR_IGNORE_EXISTING)
-                return 0;
-
-        if (!S_ISDIR(st.st_mode))
-                return log_full_errno(flags & MKDIR_WARN_MODE ? LOG_WARNING : LOG_DEBUG, SYNTHETIC_ERRNO(ENOTDIR),
-                                      "Path \"%s\" already exists and is not a directory, refusing.", path);
-
-        if ((st.st_mode & ~mode & 0777) != 0)
-                return log_full_errno(flags & MKDIR_WARN_MODE ? LOG_WARNING : LOG_DEBUG, SYNTHETIC_ERRNO(EEXIST),
-                                      "Directory \"%s\" already exists, but has mode %04o that is too permissive (%04o was requested), refusing.",
-                                      path, st.st_mode & 0777, mode);
-
-        if ((uid != UID_INVALID && st.st_uid != uid) ||
-            (gid != GID_INVALID && st.st_gid != gid))
-                return log_full_errno(flags & MKDIR_WARN_MODE ? LOG_WARNING : LOG_DEBUG, SYNTHETIC_ERRNO(EEXIST),
-                                      "Directory \"%s\" already exists, but is owned by "UID_FMT":"GID_FMT" (%s:%s was requested), refusing.",
-                                      path, st.st_uid, st.st_gid, uid != UID_INVALID ? FORMAT_UID(uid) : "-",
-                                      gid != UID_INVALID ? FORMAT_GID(gid) : "-");
 
         return 0;
 }
@@ -85,6 +51,7 @@ int mkdirat_parents_internal(int dir_fd, const char *path, mode_t mode, uid_t ui
 
         assert(path);
         assert(_mkdirat);
+        assert((flags & MKDIR_UNSUPPORTED) == 0);
 
         if (isempty(path))
                 return 0;
