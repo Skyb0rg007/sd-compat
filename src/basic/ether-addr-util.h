@@ -18,10 +18,6 @@ struct hw_addr_data {
         };
 };
 
-typedef enum HardwareAddressToStringFlags {
-        HW_ADDR_TO_STRING_NO_COLON = 1 << 0,
-} HardwareAddressToStringFlags;
-
 #define HW_ADDR_TO_STRING_MAX (3*HW_ADDR_MAX_SIZE)
 
 #define HW_ADDR_NULL ((const struct hw_addr_data){})

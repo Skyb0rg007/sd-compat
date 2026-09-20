@@ -76,17 +76,6 @@ typedef enum CGroupMask {
 #define CGROUP_LIMIT_MIN UINT64_C(0)
 #define CGROUP_LIMIT_MAX UINT64_MAX
 
-/* IO limits on unified hierarchy */
-typedef enum CGroupIOLimitType {
-        CGROUP_IO_RBPS_MAX,
-        CGROUP_IO_WBPS_MAX,
-        CGROUP_IO_RIOPS_MAX,
-        CGROUP_IO_WIOPS_MAX,
-
-        _CGROUP_IO_LIMIT_TYPE_MAX,
-        _CGROUP_IO_LIMIT_TYPE_INVALID = -EINVAL,
-} CGroupIOLimitType;
-
 /* Special values for the io.bfq.weight attribute */
 #define CGROUP_BFQ_WEIGHT_INVALID UINT64_MAX
 #define CGROUP_BFQ_WEIGHT_MIN UINT64_C(1)
@@ -137,18 +126,3 @@ int cg_pid_get_owner_uid(pid_t pid, uid_t *ret_uid);
 int cg_path_decode_unit(const char *cgroup, char **ret_unit);
 
 char* cg_unescape(const char *p) _pure_;
-
-typedef enum ManagedOOMMode {
-        MANAGED_OOM_AUTO,
-        MANAGED_OOM_KILL,
-        _MANAGED_OOM_MODE_MAX,
-        _MANAGED_OOM_MODE_INVALID = -EINVAL,
-} ManagedOOMMode;
-
-typedef enum ManagedOOMPreference {
-        MANAGED_OOM_PREFERENCE_NONE = 0,
-        MANAGED_OOM_PREFERENCE_AVOID = 1,
-        MANAGED_OOM_PREFERENCE_OMIT = 2,
-        _MANAGED_OOM_PREFERENCE_MAX,
-        _MANAGED_OOM_PREFERENCE_INVALID = -EINVAL,
-} ManagedOOMPreference;

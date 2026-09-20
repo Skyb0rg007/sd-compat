@@ -35,11 +35,6 @@ const char* typesafe_inet_ntop6(const struct in6_addr *a, char *buf, size_t len)
 
 #define PREFIX_SUFFIX_MAX (1 + DECIMAL_STR_MAX(unsigned))
 
-typedef enum InAddrPrefixLenMode {
-        PREFIXLEN_FULL,   /* Default to prefixlen of address size, 32 for IPv4 or 128 for IPv6, if not specified. */
-        PREFIXLEN_REFUSE, /* Fail with -ENOANO if prefixlen is not specified. */
-} InAddrPrefixLenMode;
-
 #define FAMILY_ADDRESS_SIZE_SAFE(f)                                     \
         ({                                                              \
                 int _f = (f);                                           \

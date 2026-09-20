@@ -22,22 +22,12 @@ int fchmod_opath(int fd, mode_t m);
 
 int access_nofollow(const char *path, int mode);
 
-typedef enum SymlinkFlags {
-        SYMLINK_MAKE_RELATIVE = 1 << 0,
-        SYMLINK_LABEL         = 1 << 1,
-} SymlinkFlags;
-
 int tmp_dir(const char **ret);
 int var_tmp_dir(const char **ret);
 
 /* Useful for usage with _cleanup_(), removes a directory and frees the pointer */
 char *rmdir_and_free(char *p);
 DEFINE_TRIVIAL_CLEANUP_FUNC(char*, rmdir_and_free);
-
-typedef enum UnlinkDeallocateFlags {
-        UNLINK_REMOVEDIR = 1 << 0,
-        UNLINK_ERASE     = 1 << 1,
-} UnlinkDeallocateFlags;
 
 typedef enum XOpenFlags {
         XO_LABEL             = 1 << 0, /* When creating: relabel */

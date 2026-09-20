@@ -209,9 +209,3 @@ char* strdupcspn(const char *a, const char *reject);
                 const char *_t = (s);                                   \
                 (char*) memdupa_suffix0(_t, strnlen(_t, n));            \
         })
-
-typedef enum VersionFlags {
-        VERSION_ALLOW_EMPTY      = 1 << 0,
-        VERSION_ALLOW_UNDERSCORE = 1 << 1, /* Allow "_" as separator (recommended separator) */
-        VERSION_ALLOW_PLUS       = 1 << 2, /* Allow "+" as separator (sometimes used as separator for boot attempt counters) */
-} VersionFlags;

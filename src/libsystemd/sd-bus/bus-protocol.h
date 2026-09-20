@@ -64,9 +64,3 @@ enum {
         BUS_NAME_NON_EXISTENT = 2,
         BUS_NAME_NOT_OWNER = 3,
 };
-
-/* StartServiceByName returns */
-enum {
-        BUS_START_REPLY_SUCCESS = 1,
-        BUS_START_REPLY_ALREADY_RUNNING = 2,
-};

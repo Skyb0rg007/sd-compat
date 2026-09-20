@@ -43,12 +43,3 @@ DEFINE_HASH_OPS_WITH_VALUE_DESTRUCTOR(
                 uint64_hash_ops_value_free,
                 uint64_t, uint64_hash_func, uint64_compare_func,
                 void, free);
-
-#if SIZEOF_DEV_T != 8
-void devt_hash_func(const dev_t *p, struct siphash *state) {
-        assert(p);
-
-        siphash24_compress_typesafe(*p, state);
-}
-#endif
-

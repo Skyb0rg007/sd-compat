@@ -70,13 +70,6 @@ static inline int fd_increase_rxbuf(int fd, size_t n) {
         return fd_set_rcvbuf(fd, n, true);
 }
 
-typedef enum {
-        IFNAME_VALID_ALTERNATIVE = 1 << 0, /* Allow "altnames" too */
-        IFNAME_VALID_NUMERIC     = 1 << 1, /* Allow decimal formatted ifindexes too */
-        IFNAME_VALID_SPECIAL     = 1 << 2, /* Allow the special names "all" and "default" */
-        _IFNAME_VALID_ALL        = IFNAME_VALID_ALTERNATIVE | IFNAME_VALID_NUMERIC | IFNAME_VALID_SPECIAL,
-} IfnameValidFlags;
-
 int getpeercred(int fd, struct ucred *ucred);
 int getpeersec(int fd, char **ret);
 int getpeergroups(int fd, gid_t **ret);

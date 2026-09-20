@@ -21,11 +21,6 @@
  */
 #define SHELL_NEED_ESCAPE_POSIX "\\\'"
 
-typedef enum UnescapeFlags {
-        UNESCAPE_RELAX      = 1 << 0,
-        UNESCAPE_ACCEPT_NUL = 1 << 1,
-} UnescapeFlags;
-
 typedef enum ShellEscapeFlags {
         /* The default is to add shell quotes ("") so the shell will consider this a single argument.
          * Tabs and newlines are escaped. */
@@ -41,11 +36,6 @@ static inline char* cescape(const char *s) {
 }
 
 int cunescape_one(const char *p, size_t length, char32_t *ret, bool *eight_bit, bool accept_nul);
-
-typedef enum XEscapeFlags {
-        XESCAPE_8_BIT          = 1 << 0,
-        XESCAPE_FORCE_ELLIPSIS = 1 << 1,
-} XEscapeFlags;
 
 char* octescape_full(const char *s, size_t len, const char *bad);
 static inline char* octescape(const char *s, size_t len) {

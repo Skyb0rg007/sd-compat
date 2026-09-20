@@ -23,18 +23,6 @@ typedef enum UnitType {
         _UNIT_TYPE_ERRNO_MAX = -ERRNO_MAX, /* Ensure the whole errno range fits into this enum */
 } UnitType;
 
-typedef enum UnitLoadState {
-        UNIT_STUB,
-        UNIT_LOADED,
-        UNIT_NOT_FOUND,    /* error condition #1: unit file not found */
-        UNIT_BAD_SETTING,  /* error condition #2: we couldn't parse some essential unit file setting */
-        UNIT_ERROR,        /* error condition #3: other "system" error, catchall for the rest */
-        UNIT_MERGED,
-        UNIT_MASKED,
-        _UNIT_LOAD_STATE_MAX,
-        _UNIT_LOAD_STATE_INVALID = -EINVAL,
-} UnitLoadState;
-
 typedef enum UnitActiveState {
         UNIT_ACTIVE,
         UNIT_RELOADING,
@@ -47,177 +35,6 @@ typedef enum UnitActiveState {
         _UNIT_ACTIVE_STATE_MAX,
         _UNIT_ACTIVE_STATE_INVALID = -EINVAL,
 } UnitActiveState;
-
-typedef enum FreezerState {
-        FREEZER_RUNNING,
-        FREEZER_FREEZING, /* freezing due to user request */
-        FREEZER_FROZEN,
-        FREEZER_FREEZING_BY_PARENT, /* freezing as a result of parent slice freezing */
-        FREEZER_FROZEN_BY_PARENT,
-        FREEZER_THAWING,
-        _FREEZER_STATE_MAX,
-        _FREEZER_STATE_INVALID = -EINVAL,
-} FreezerState;
-
-typedef enum UnitMarker {
-        UNIT_MARKER_NEEDS_RELOAD,
-        UNIT_MARKER_NEEDS_RESTART,
-        UNIT_MARKER_NEEDS_STOP,
-        UNIT_MARKER_NEEDS_START,
-        _UNIT_MARKER_MAX,
-        _UNIT_MARKER_INVALID = -EINVAL,
-} UnitMarker;
-
-typedef enum AutomountState {
-        AUTOMOUNT_DEAD,
-        AUTOMOUNT_WAITING,
-        AUTOMOUNT_RUNNING,
-        AUTOMOUNT_FAILED,
-        _AUTOMOUNT_STATE_MAX,
-        _AUTOMOUNT_STATE_INVALID = -EINVAL,
-} AutomountState;
-
-/* We simply watch devices, we cannot plug/unplug them. That
- * simplifies the state engine greatly */
-typedef enum DeviceState {
-        DEVICE_DEAD,
-        DEVICE_TENTATIVE, /* mounted or swapped, but not (yet) announced by udev */
-        DEVICE_PLUGGED,   /* announced by udev */
-        _DEVICE_STATE_MAX,
-        _DEVICE_STATE_INVALID = -EINVAL,
-} DeviceState;
-
-typedef enum MountState {
-        MOUNT_DEAD,
-        MOUNT_MOUNTING,               /* /usr/bin/mount is running, but the mount is not done yet. */
-        MOUNT_MOUNTING_DONE,          /* /usr/bin/mount is running, and the mount is done. */
-        MOUNT_MOUNTED,
-        MOUNT_REMOUNTING,
-        MOUNT_UNMOUNTING,
-        MOUNT_REMOUNTING_SIGTERM,
-        MOUNT_REMOUNTING_SIGKILL,
-        MOUNT_UNMOUNTING_SIGTERM,
-        MOUNT_UNMOUNTING_SIGKILL,
-        MOUNT_FAILED,
-        MOUNT_CLEANING,
-        _MOUNT_STATE_MAX,
-        _MOUNT_STATE_INVALID = -EINVAL,
-} MountState;
-
-typedef enum PathState {
-        PATH_DEAD,
-        PATH_WAITING,
-        PATH_RUNNING,
-        PATH_FAILED,
-        _PATH_STATE_MAX,
-        _PATH_STATE_INVALID = -EINVAL,
-} PathState;
-
-typedef enum ScopeState {
-        SCOPE_DEAD,
-        SCOPE_START_CHOWN,
-        SCOPE_RUNNING,
-        SCOPE_ABANDONED,
-        SCOPE_STOP_SIGTERM,
-        SCOPE_STOP_SIGKILL,
-        SCOPE_FAILED,
-        _SCOPE_STATE_MAX,
-        _SCOPE_STATE_INVALID = -EINVAL,
-} ScopeState;
-
-typedef enum ServiceState {
-        SERVICE_DEAD,
-        SERVICE_CONDITION,
-        SERVICE_START_PRE,
-        SERVICE_START,
-        SERVICE_START_POST,
-        SERVICE_RUNNING,
-        SERVICE_RUNNING_REVALIDATING,   /* Temporarily waiting for the D-Bus name to reappear */
-        SERVICE_EXITED,                 /* Nothing is running anymore, but RemainAfterExit is true hence this is OK */
-        SERVICE_REFRESH_EXTENSIONS,     /* Refreshing extensions for a reload request */
-        SERVICE_REFRESH_CREDENTIALS,    /* ditto, but for credentials */
-        SERVICE_RELOAD,                 /* Reloading via ExecReload= */
-        SERVICE_RELOAD_SIGNAL,          /* Reloading via SIGHUP requested */
-        SERVICE_RELOAD_NOTIFY,          /* Waiting for READY=1 after RELOADING=1 notify */
-        SERVICE_RELOAD_POST,
-        SERVICE_MOUNTING,               /* Performing a live mount into the namespace of the service */
-        SERVICE_STOP,                   /* No STOP_PRE state, instead just register multiple STOP executables */
-        SERVICE_STOP_WATCHDOG,
-        SERVICE_STOP_SIGTERM,
-        SERVICE_STOP_SIGKILL,
-        SERVICE_STOP_POST,
-        SERVICE_FINAL_WATCHDOG,         /* In case the STOP_POST executable needs to be aborted. */
-        SERVICE_FINAL_SIGTERM,          /* In case the STOP_POST executable hangs, we shoot that down, too */
-        SERVICE_FINAL_SIGKILL,
-        SERVICE_FAILED,
-        SERVICE_DEAD_BEFORE_AUTO_RESTART,
-        SERVICE_FAILED_BEFORE_AUTO_RESTART,
-        SERVICE_DEAD_RESOURCES_PINNED,  /* Like SERVICE_DEAD, but with pinned resources */
-        SERVICE_AUTO_RESTART,
-        SERVICE_AUTO_RESTART_QUEUED,
-        SERVICE_CLEANING,
-        _SERVICE_STATE_MAX,
-        _SERVICE_STATE_INVALID = -EINVAL,
-} ServiceState;
-
-typedef enum SliceState {
-        SLICE_DEAD,
-        SLICE_ACTIVE,
-        _SLICE_STATE_MAX,
-        _SLICE_STATE_INVALID = -EINVAL,
-} SliceState;
-
-typedef enum SocketState {
-        SOCKET_DEAD,
-        SOCKET_START_PRE,
-        SOCKET_START_OPEN,
-        SOCKET_START_CHOWN,
-        SOCKET_START_POST,
-        SOCKET_LISTENING,
-        SOCKET_DEFERRED,
-        SOCKET_RUNNING,
-        SOCKET_STOP_PRE,
-        SOCKET_STOP_PRE_SIGTERM,
-        SOCKET_STOP_PRE_SIGKILL,
-        SOCKET_STOP_POST,
-        SOCKET_FINAL_SIGTERM,
-        SOCKET_FINAL_SIGKILL,
-        SOCKET_FAILED,
-        SOCKET_CLEANING,
-        _SOCKET_STATE_MAX,
-        _SOCKET_STATE_INVALID = -EINVAL,
-} SocketState;
-
-typedef enum SwapState {
-        SWAP_DEAD,
-        SWAP_ACTIVATING,               /* /sbin/swapon is running, but the swap not yet enabled. */
-        SWAP_ACTIVATING_DONE,          /* /sbin/swapon is running, and the swap is done. */
-        SWAP_ACTIVE,
-        SWAP_DEACTIVATING,
-        SWAP_DEACTIVATING_SIGTERM,
-        SWAP_DEACTIVATING_SIGKILL,
-        SWAP_FAILED,
-        SWAP_CLEANING,
-        _SWAP_STATE_MAX,
-        _SWAP_STATE_INVALID = -EINVAL,
-} SwapState;
-
-typedef enum TargetState {
-        TARGET_DEAD,
-        TARGET_ACTIVE,
-        _TARGET_STATE_MAX,
-        _TARGET_STATE_INVALID = -EINVAL,
-} TargetState;
-
-typedef enum TimerState {
-        TIMER_DEAD,
-        TIMER_WAITING,
-        TIMER_RUNNING,
-        TIMER_ELAPSED,
-        TIMER_FAILED,
-        _TIMER_STATE_MAX,
-        _TIMER_STATE_INVALID = -EINVAL,
-} TimerState;
 
 typedef enum UnitDependency {
         /* Positive dependencies */
@@ -277,15 +94,6 @@ typedef enum UnitDependency {
         _UNIT_DEPENDENCY_INVALID = -EINVAL,
 } UnitDependency;
 
-typedef enum NotifyAccess {
-        NOTIFY_NONE,
-        NOTIFY_ALL,
-        NOTIFY_MAIN,
-        NOTIFY_EXEC,
-        _NOTIFY_ACCESS_MAX,
-        _NOTIFY_ACCESS_INVALID = -EINVAL,
-} NotifyAccess;
-
 typedef enum JobMode {
         JOB_FAIL,                 /* Fail if a conflicting job is already queued */
         JOB_LENIENT,              /* Fail if any conflicting unit is active (even weaker than JOB_FAIL) */
@@ -300,15 +108,5 @@ typedef enum JobMode {
         _JOB_MODE_MAX,
         _JOB_MODE_INVALID = -EINVAL,
 } JobMode;
-
-typedef enum ExecDirectoryType {
-        EXEC_DIRECTORY_RUNTIME,
-        EXEC_DIRECTORY_STATE,
-        EXEC_DIRECTORY_CACHE,
-        EXEC_DIRECTORY_LOGS,
-        EXEC_DIRECTORY_CONFIGURATION,
-        _EXEC_DIRECTORY_TYPE_MAX,
-        _EXEC_DIRECTORY_TYPE_INVALID = -EINVAL,
-} ExecDirectoryType;
 
 DECLARE_STRING_TABLE_LOOKUP(unit_type, UnitType);

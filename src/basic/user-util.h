@@ -41,13 +41,6 @@ static inline int parse_gid(const char *s, gid_t *ret_gid) {
 
 char* getusername_malloc(void);
 
-typedef enum UserCredsFlags {
-        USER_CREDS_PREFER_NSS           = 1 << 0,  /* if set, only synthesize user records if database lacks them. Normally we bypass the userdb entirely for the records we can synthesize */
-        USER_CREDS_ALLOW_MISSING        = 1 << 1,  /* if a numeric UID string is resolved, be OK if there's no record for it */
-        USER_CREDS_CLEAN                = 1 << 2,  /* try to clean up shell and home fields with invalid data */
-        USER_CREDS_SUPPRESS_PLACEHOLDER = 1 << 3,  /* suppress home and/or shell fields if value is placeholder (root/empty/nologin) */
-} UserCredsFlags;
-
 char* uid_to_name(uid_t uid);
 
 int get_home_dir(char **ret);

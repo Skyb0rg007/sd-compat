@@ -14,10 +14,3 @@ typedef struct LockFile {
 } LockFile;
 
 #define LOCK_FILE_INIT (LockFile) { .dir_fd = -EBADF, .fd = -EBADF }
-
-typedef enum LockType {
-        LOCK_NONE, /* Don't lock the file descriptor. Useful if you need to conditionally lock a file. */
-        LOCK_BSD,
-        LOCK_POSIX,
-        LOCK_UNPOSIX,
-} LockType;

@@ -5,12 +5,6 @@
 
 #define ENVIRONMENT_ASSIGNMENTS_MAX 16384U
 
-typedef enum ReplaceEnvFlags {
-        REPLACE_ENV_USE_ENVIRONMENT = 1 << 0,
-        REPLACE_ENV_ALLOW_BRACELESS = 1 << 1,
-        REPLACE_ENV_ALLOW_EXTENDED  = 1 << 2,
-} ReplaceEnvFlags;
-
 int strv_env_get_merged(char **l, char ***ret);
 
 int getenv_bool(const char *p);
