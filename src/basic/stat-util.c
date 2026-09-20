@@ -38,48 +38,6 @@ static int verify_stat_at(
         return verify ? r : r >= 0;
 }
 
-static int mode_verify_regular(mode_t mode) {
-        if (S_ISDIR(mode))
-                return -EISDIR;
-
-        if (S_ISLNK(mode))
-                return -ELOOP;
-
-        if (!S_ISREG(mode))
-                return -EBADFD;
-
-        return 0;
-}
-
-int stat_verify_regular(const struct stat *st) {
-        assert(st);
-
-        /* Checks whether the specified stat() structure refers to a regular file. If not returns an
-         * appropriate error code. */
-
-        return mode_verify_regular(st->st_mode);
-}
-
-int statx_verify_regular(const struct statx *stx) {
-        assert(stx);
-
-        if (!FLAGS_SET(stx->stx_mask, STATX_TYPE))
-                return -ENODATA;
-
-        return mode_verify_regular(stx->stx_mode);
-}
-
-int verify_regular_at(int fd, const char *path, bool follow) {
-        return verify_stat_at(fd, path, follow, stat_verify_regular, true);
-}
-
-int fd_verify_regular(int fd) {
-        if (IN_SET(fd, AT_FDCWD, XAT_FDROOT))
-                return -EISDIR;
-
-        return verify_regular_at(fd, /* path= */ NULL, /* follow= */ false);
-}
-
 static int mode_verify_directory(mode_t mode) {
         if (S_ISLNK(mode))
                 return -ELOOP;
@@ -105,13 +63,6 @@ int statx_verify_directory(const struct statx *stx) {
         return mode_verify_directory(stx->stx_mode);
 }
 
-int fd_verify_directory(int fd) {
-        if (IN_SET(fd, AT_FDCWD, XAT_FDROOT))
-                return 0;
-
-        return verify_stat_at(fd, NULL, false, stat_verify_directory, true);
-}
-
 int is_dir_at(int fd, const char *path, bool follow) {
         return verify_stat_at(fd, path, follow, stat_verify_directory, false);
 }
@@ -119,38 +70,6 @@ int is_dir_at(int fd, const char *path, bool follow) {
 int is_dir(const char *path, bool follow) {
         assert(!isempty(path));
         return is_dir_at(AT_FDCWD, path, follow);
-}
-
-static int mode_verify_socket(mode_t mode) {
-        if (S_ISDIR(mode))
-                return -EISDIR;
-
-        if (S_ISLNK(mode))
-                return -ELOOP;
-
-        if (!S_ISSOCK(mode))
-                return -ENOTSOCK;
-
-        return 0;
-}
-
-int stat_verify_socket(const struct stat *st) {
-        assert(st);
-
-        return mode_verify_socket(st->st_mode);
-}
-
-int statx_verify_socket(const struct statx *stx) {
-        assert(stx);
-
-        return mode_verify_socket(stx->stx_mode);
-}
-
-int fd_verify_socket(int fd) {
-        if (IN_SET(fd, AT_FDCWD, XAT_FDROOT))
-                return -EISDIR;
-
-        return verify_stat_at(fd, /* path= */ NULL, /* follow= */ false, stat_verify_socket, /* verify= */ true);
 }
 
 static const char* statx_mask_one_to_name(unsigned mask);

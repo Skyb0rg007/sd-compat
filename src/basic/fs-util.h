@@ -40,6 +40,18 @@ typedef enum XOpenFlags {
         XO_AUTO_RW_RO        = 1 << 7, /* Open in O_RDWR mode if possible, O_RDONLY if not */
 } XOpenFlags;
 
+/* None of the above is implemented anymore, and xopenat_full_label()'s label_context must be NULL for the
+ * same reason: every caller opens a plain inode. */
+#define XO_UNSUPPORTED                          \
+        (XO_LABEL |                             \
+         XO_SUBVOLUME |                         \
+         XO_NOCOW |                             \
+         XO_COW |                               \
+         XO_REGULAR |                           \
+         XO_SOCKET |                            \
+         XO_TRIGGER_AUTOMOUNT |                 \
+         XO_AUTO_RW_RO)
+
 int openat_report_new(int dirfd, const char *pathname, int flags, mode_t mode, bool *ret_newly_created);
 
 int xopenat_full_label(int dir_fd, const char *path, int open_flags, XOpenFlags xopen_flags, mode_t mode, LabelContext *label_context);

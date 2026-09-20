@@ -6,20 +6,12 @@
 
 #include "forward.h"
 
-int stat_verify_regular(const struct stat *st);
-int statx_verify_regular(const struct statx *stx);
-int verify_regular_at(int fd, const char *path, bool follow);
-int fd_verify_regular(int fd);
 
 int stat_verify_directory(const struct stat *st);
 int statx_verify_directory(const struct statx *stx);
-int fd_verify_directory(int fd);
 int is_dir_at(int fd, const char *path, bool follow);
 int is_dir(const char *path, bool follow);
 
-int stat_verify_socket(const struct stat *st);
-int statx_verify_socket(const struct statx *stx);
-int fd_verify_socket(int fd);
 
 typedef enum XStatXFlags {
         XSTATX_MNT_ID_BEST = 1 << 0, /* Like STATX_MNT_ID_UNIQUE if available, STATX_MNT_ID otherwise */
