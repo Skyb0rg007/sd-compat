@@ -2,9 +2,219 @@
 #
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
+.DEFAULT_GOAL := all
+
 CC = cc
-CFLAGS = -Wall -Wextra
+CPP = cpp
+AWK = awk
+GPERF = gperf
+PYTHON = python3
+
+BUILDDIR = _build
+GENDIR = $(BUILDDIR)/gen
+
+# ---------------------------------------------------------------------------
+# Installation paths baked into the library
+# ---------------------------------------------------------------------------
+
+prefix = /usr
+sysconfdir = /etc
+libdir = $(prefix)/lib
+libexecdir = $(prefix)/lib/systemd
+pkgsysconfdir = $(sysconfdir)/systemd
+
+# ---------------------------------------------------------------------------
+# Include paths
+#
+# src/include/override must come before src/include/uapi, and both are -isystem
+# so that #include_next reaches the real libc and kernel headers.
+# ---------------------------------------------------------------------------
+
+SYSTEM_INCLUDES = -isystem src/include/override \
+				  -isystem src/include/uapi \
+				  -isystem src/include/glibc
+
+# src/libsystemd must precede src/basic: both contain a forward.h, and the
+# libsystemd sources need the one that declares the sd_* handle types.
+LIBSYSTEMD_INCLUDES = -Isrc/libsystemd \
+					  -Isrc/libsystemd/sd-bus \
+					  -Isrc/libsystemd/sd-daemon \
+					  -Isrc/libsystemd/sd-event \
+					  -Isrc/libsystemd/sd-future \
+					  -Isrc/libsystemd/sd-id128 \
+					  -Isrc/libsystemd/sd-json \
+					  -Isrc/libsystemd/sd-network \
+					  -Isrc/libsystemd/sd-path \
+					  -Isrc/libsystemd/sd-varlink
+
+BASIC_INCLUDES = -I$(GENDIR) -Iinclude -Isrc/basic -Isrc/fundamental
+
+# ---------------------------------------------------------------------------
+# Configuration macros
+#
+# These stand in for the entries meson writes into config.h.
+# ---------------------------------------------------------------------------
+
+CONFIG_DEFINES = -D_GNU_SOURCE \
+				 -D_FILE_OFFSET_BITS=64 \
+				 -DFALLBACK_HOSTNAME='"localhost"' \
+				 -DRELATIVE_SOURCE_PATH='"src"' \
+				 -DTTY_MODE=0600 \
+				 -DBUILD_MODE_DEVELOPER=1 \
+				 -DSIZEOF_DEV_T=8 \
+				 -DSIZEOF_INO_T=8 \
+				 -DSIZEOF_RLIM_T=8 \
+				 -DSIZEOF_TIME_T=8 \
+				 -DSIZEOF_TIMEX_MEMBER=8 \
+				 -DHAVE_ATTRIBUTE_ALLOC_SIZE \
+				 -DHAVE_ATTRIBUTE_FALLTHROUGH \
+				 -DHAVE_ATTRIBUTE_RETAIN \
+				 -DHAVE_ATTRIBUTE_NO_REORDER \
+				 -DHAVE_WARNING_ZERO_AS_NULL_POINTER_CONSTANT \
+				 -DHAVE_WARNING_ZERO_LENGTH_BOUNDS \
+				 -DGPERF_LEN_TYPE=size_t \
+				 -DDEFAULT_TIMEOUT_SEC=90
+
+USER_DEFINES = -DDEFAULT_USER_SHELL='"/bin/bash"' \
+			   -DDEFAULT_USER_SHELL_NAME='"bash"' \
+			   -DNOLOGIN='"/usr/sbin/nologin"' \
+			   -DNOBODY_USER_NAME='"nobody"' \
+			   -DNOBODY_GROUP_NAME='"nobody"' \
+			   -DSYSTEM_ALLOC_UID_MIN=1 \
+			   -DSYSTEM_UID_MAX=999 \
+			   -DSYSTEM_ALLOC_GID_MIN=1 \
+			   -DSYSTEM_GID_MAX=999 \
+			   -DGREETER_UID_MIN=0x0000ECA2 \
+			   -DGREETER_UID_MAX=0x0000ED21 \
+			   -DDYNAMIC_UID_MIN=0x0000EF00 \
+			   -DDYNAMIC_UID_MAX=0x0000FFEF \
+			   -DCONTAINER_UID_BASE_MIN=0x00080000 \
+			   -DCONTAINER_UID_BASE_MAX=0x6FFF0000 \
+			   -DFOREIGN_UID_BASE=0x7FFE0000
+
+PATH_DEFINES = -DLIBDIR='"$(libdir)"' \
+			   -DPREFIX_NOSLASH='"$(prefix)"' \
+			   -DSYSTEM_CONFIG_UNIT_DIR='"$(pkgsysconfdir)/system"' \
+			   -DSYSTEM_DATA_UNIT_DIR='"$(libexecdir)/system"' \
+			   -DSYSTEM_ENV_GENERATOR_DIR='"$(libexecdir)/system-environment-generators"' \
+			   -DSYSTEM_GENERATOR_DIR='"$(libexecdir)/system-generators"' \
+			   -DUSER_CONFIG_UNIT_DIR='"$(pkgsysconfdir)/user"' \
+			   -DUSER_DATA_UNIT_DIR='"$(libexecdir)/user"' \
+			   -DUSER_ENV_GENERATOR_DIR='"$(libexecdir)/user-environment-generators"' \
+			   -DUSER_GENERATOR_DIR='"$(libexecdir)/user-generators"' \
+			   -DVARLINK_BRIDGES_DIR='"$(libexecdir)/varlink-bridges"'
+
+VERSION = 262
+VERSION_DEFINES = -DPROJECT_VERSION=$(VERSION) \
+				  -DPROJECT_VERSION_STR='"$(VERSION)"' \
+				  -DPROJECT_VERSION_FULL='"$(VERSION)"' \
+				  -DVERSION_TAG='"$(VERSION)"'
+
+WARNFLAGS = -Wall -Wextra \
+			-Wno-missing-field-initializers -Wno-unknown-warning-option \
+			-Wno-unused-parameter -Wno-nonnull-compare
+
+DEPFLAGS = -MD -MP
+
+CFLAGS = $(WARNFLAGS) -fPIC -fvisibility=default $(DEPFLAGS) \
+		 $(CONFIG_DEFINES) $(USER_DEFINES) $(PATH_DEFINES) $(VERSION_DEFINES)
+
+VERSION_SCRIPT = src/libsystemd/libsystemd.sym
+
 LDFLAGS =
 LDLIBS =
 
+# ---------------------------------------------------------------------------
+# Generated sources
+#
+# src/basic/{af-list,capability-list,errno-list,stat-util}.c #include tables
+# that upstream generates at build time. The *-to-name.inc tables only need
+# cpp + awk; the *-from-name.inc perfect hashes additionally need gperf.
+# ---------------------------------------------------------------------------
 
+GPERF_NAMES = af capability errno
+LIST_NAMES = $(GPERF_NAMES) statx-mask statx-attribute
+
+GEN_TO_NAME = $(patsubst %,$(GENDIR)/%-to-name.inc,$(LIST_NAMES))
+GEN_FROM_NAME = $(patsubst %,$(GENDIR)/%-from-name.inc,$(GPERF_NAMES))
+GEN_HEADERS = $(GEN_TO_NAME) $(GEN_FROM_NAME) $(GENDIR)/version.h
+
+$(GENDIR)/%-list.txt: src/basic/generate-%-list.sh | $(GENDIR)
+	bash $< $(CPP) $(SYSTEM_INCLUDES) > $@
+
+$(GENDIR)/%-to-name.inc: src/basic/%-to-name.awk $(GENDIR)/%-list.txt
+	$(AWK) -f $< $(GENDIR)/$*-list.txt > $@
+
+$(GENDIR)/af-from-name.gperf: $(GENDIR)/af-list.txt
+	$(PYTHON) tools/generate-gperfs.py af '' $< '<sys/socket.h>' > $@
+
+$(GENDIR)/capability-from-name.gperf: $(GENDIR)/capability-list.txt
+	$(PYTHON) tools/generate-gperfs.py capability '' $< '<linux/capability.h>' > $@
+
+$(GENDIR)/errno-from-name.gperf: $(GENDIR)/errno-list.txt
+	$(PYTHON) tools/generate-gperfs.py errno '' $< '<errno.h>' > $@
+
+$(GENDIR)/%-from-name.inc: $(GENDIR)/%-from-name.gperf
+	$(GPERF) -L ANSI-C -t --ignore-case -N lookup_$* -H hash_$*_name -p -C $< > $@
+
+$(GENDIR)/filesystem-sets.c: src/basic/filesystem-sets.py | $(GENDIR)
+	$(PYTHON) $< fs-type-to-string filesystem-sets fs-in-group > $@
+
+# REUSE-IgnoreStart
+$(GENDIR)/version.h: | $(GENDIR)
+	printf '/* SPDX-License-Identifier: LGPL-2.1-or-later */\n#pragma once\n#define GIT_VERSION VERSION_TAG ""\n' > $@
+# REUSE-IgnoreEnd
+
+# ---------------------------------------------------------------------------
+# Sources
+# ---------------------------------------------------------------------------
+
+BASIC_SOURCES = $(wildcard src/basic/*.c)
+FUNDAMENTAL_SOURCES = $(wildcard src/fundamental/*.c)
+LIBC_SOURCES = $(wildcard src/libc/*.c)
+LIBSYSTEMD_SOURCES = $(wildcard src/libsystemd/*/*.c)
+
+BASIC_OBJECTS = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(BASIC_SOURCES) $(FUNDAMENTAL_SOURCES))
+LIBC_OBJECTS = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(LIBC_SOURCES))
+LIBSYSTEMD_OBJECTS = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(LIBSYSTEMD_SOURCES))
+GEN_OBJECTS = $(GENDIR)/filesystem-sets.o
+
+OBJECTS = $(BASIC_OBJECTS) $(LIBC_OBJECTS) $(LIBSYSTEMD_OBJECTS) $(GEN_OBJECTS)
+
+# ---------------------------------------------------------------------------
+# Compilation
+# ---------------------------------------------------------------------------
+
+$(BUILDDIR)/libsystemd/%.o: src/libsystemd/%.c $(GEN_HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(SYSTEM_INCLUDES) $(LIBSYSTEMD_INCLUDES) $(BASIC_INCLUDES) -c $< -o $@
+
+$(BUILDDIR)/%.o: src/%.c $(GEN_HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(SYSTEM_INCLUDES) $(BASIC_INCLUDES) -c $< -o $@
+
+$(GENDIR)/%.o: $(GENDIR)/%.c $(GEN_HEADERS)
+	$(CC) $(CFLAGS) $(SYSTEM_INCLUDES) $(BASIC_INCLUDES) -c $< -o $@
+
+SONAME = libsystemd.so.0
+
+$(BUILDDIR)/$(SONAME): $(OBJECTS) $(VERSION_SCRIPT)
+	$(CC) $(LDFLAGS) -shared -Wl,--no-undefined \
+		-Wl,--version-script=$(VERSION_SCRIPT) \
+		-Wl,-soname,$(SONAME) -o $@ $(OBJECTS) $(LDLIBS)
+
+$(BUILDDIR)/libsystemd.so: $(BUILDDIR)/$(SONAME)
+	ln -sf $(SONAME) $@
+
+$(GENDIR):
+	mkdir -p $@
+
+.PHONY: all clean
+all: $(BUILDDIR)/libsystemd.so $(BUILDDIR)/$(SONAME)
+
+clean:
+	rm -rf $(BUILDDIR)
+
+-include $(OBJECTS:.o=.d)
+
+.PRECIOUS: $(GENDIR)/%-list.txt $(GENDIR)/%-from-name.gperf $(GENDIR)/filesystem-sets.c

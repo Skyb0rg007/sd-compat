@@ -3,5 +3,81 @@ version = 1
 [[annotations]]
 path = [
     "include/*.h",
+    "tools/*.py",
+    "src/basic/**",
+    "src/fundamental/**",
+    "src/include/**",
+    "src/libc/**",
+    "src/libsystemd/**",
 ]
 SPDX-FileCopyrightText = "2026 The Systemd Authors"
+
+[[annotations]]
+path = [
+    "src/include/uapi/**",
+]
+SPDX-FileCopyrightText = "The Linux Kernel Authors"
+
+# Necessary to override the deprecated SPDX identifiers
+[[annotations]]
+path = [
+    "src/include/uapi/linux/btrfs.h",
+    "src/include/uapi/linux/capability.h",
+    "src/include/uapi/linux/const.h",
+    "src/include/uapi/linux/fs.h",
+    "src/include/uapi/linux/fscrypt.h",
+    "src/include/uapi/linux/hdlc/ioctl.h",
+    "src/include/uapi/linux/if_link.h",
+    "src/include/uapi/linux/if_packet.h",
+    "src/include/uapi/linux/ioctl.h",
+    "src/include/uapi/linux/ipv6.h",
+    "src/include/uapi/linux/libc-compat.h",
+    "src/include/uapi/linux/limits.h",
+    "src/include/uapi/linux/magic.h",
+    "src/include/uapi/linux/netfilter/nf_tables.h",
+    "src/include/uapi/linux/netlink.h",
+    "src/include/uapi/linux/nsfs.h",
+    "src/include/uapi/linux/openat2.h",
+    "src/include/uapi/linux/pidfd.h",
+    "src/include/uapi/linux/pkt_sched.h",
+    "src/include/uapi/linux/prctl.h",
+    "src/include/uapi/linux/sched/types.h",
+    "src/include/uapi/linux/socket.h",
+    "src/include/uapi/linux/stat.h",
+    "src/include/uapi/linux/stddef.h",
+    "src/include/uapi/linux/vm_sockets.h",
+    "src/include/uapi/linux/xattr.h",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "The Linux Kernel Authors"
+SPDX-License-Identifier = "GPL-2.0-only WITH Linux-syscall-note"
+
+[[annotations]]
+path = [
+    "src/include/uapi/linux/if.h",
+    "src/include/uapi/linux/if_arp.h",
+    "src/include/uapi/linux/if_ether.h",
+    "src/include/uapi/linux/in.h",
+    "src/include/uapi/linux/in6.h",
+    "src/include/uapi/linux/keyctl.h",
+    "src/include/uapi/linux/netdevice.h",
+    "src/include/uapi/linux/sockios.h",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "The Linux Kernel Authors"
+SPDX-License-Identifier = "GPL-2.0-or-later WITH Linux-syscall-note"
+
+[[annotations]]
+path = [
+    "src/include/uapi/linux/if_infiniband.h",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "The Linux Kernel Authors"
+SPDX-License-Identifier = "(GPL-2.0-only WITH Linux-syscall-note) OR BSD-2-Clause"
+
+[[annotations]]
+path = [
+    "src/include/uapi/linux/mount.h",
+]
+SPDX-FileCopyrightText = "The Linux Kernel Authors"
+SPDX-License-Identifier = "GPL-2.0-only WITH Linux-syscall-note"

@@ -6,5 +6,8 @@
 pkgs.mkShell {
   packages = [
     pkgs.reuse
+    pkgs.gperf
+    pkgs.python3
+    pkgs.gawk
   ];
 }
