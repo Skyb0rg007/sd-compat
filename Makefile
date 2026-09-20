@@ -4,6 +4,10 @@
 
 .DEFAULT_GOAL := all
 
+# Which libc to build against: glibc or musl. Selects the shim headers under
+# src/include/<libc>/ and, for musl, the extra wrappers in src/libc/musl/.
+LIBC = glibc
+
 CC = cc
 CPP = cpp
 AWK = awk
@@ -38,7 +42,7 @@ INSTALL = install
 
 SYSTEM_INCLUDES = -isystem src/include/override \
 				  -isystem src/include/uapi \
-				  -isystem src/include/glibc
+				  -isystem src/include/$(LIBC)
 
 # src/libsystemd must precede src/basic: both contain a forward.h, and the
 # libsystemd sources need the one that declares the sd_* handle types.
@@ -63,6 +67,7 @@ BASIC_INCLUDES = -I$(GENDIR) -Iinclude -Isrc/basic -Isrc/fundamental
 
 CONFIG_DEFINES = -D_GNU_SOURCE \
 				 -D_FILE_OFFSET_BITS=64 \
+				 -D_LARGEFILE64_SOURCE \
 				 -DRELATIVE_SOURCE_PATH='"src"' \
 				 -DTTY_MODE=0600 \
 				 -DBUILD_MODE_DEVELOPER=1 \
@@ -111,6 +116,12 @@ VERSION_SCRIPT = src/libsystemd/libsystemd.sym
 LDFLAGS =
 LDLIBS =
 
+# musl declares the ucontext.h functions but does not implement them; the fiber
+# bootstrap in src/libsystemd/sd-future/fiber.c needs a real implementation.
+ifeq ($(LIBC),musl)
+LDLIBS += -lucontext
+endif
+
 # ---------------------------------------------------------------------------
 # Generated sources
 #
@@ -146,6 +157,9 @@ $(GENDIR)/%-from-name.inc: $(GENDIR)/%-from-name.gperf
 BASIC_SOURCES = $(wildcard src/basic/*.c)
 FUNDAMENTAL_SOURCES = $(wildcard src/fundamental/*.c)
 LIBC_SOURCES = $(wildcard src/libc/*.c)
+ifeq ($(LIBC),musl)
+LIBC_SOURCES += $(wildcard src/libc/musl/*.c)
+endif
 LIBSYSTEMD_SOURCES = $(wildcard src/libsystemd/*/*.c)
 
 BASIC_OBJECTS = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(BASIC_SOURCES) $(FUNDAMENTAL_SOURCES))

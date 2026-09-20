@@ -2,6 +2,7 @@
 
 #include <sys/auxv.h>
 #include <sys/random.h>
+#include <unistd.h>
 
 #include "fd-util.h"
 #include "io-util.h"

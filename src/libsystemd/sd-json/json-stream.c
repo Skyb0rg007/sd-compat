@@ -2,6 +2,7 @@
 
 #include <poll.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "sd-event.h"
 #include "sd-json.h"

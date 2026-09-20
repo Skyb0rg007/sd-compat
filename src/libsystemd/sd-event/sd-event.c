@@ -3,6 +3,7 @@
 #include <linux/magic.h>
 #include <malloc.h>
 #include <sys/timerfd.h>
+#include <unistd.h>
 
 #include "sd-daemon.h"
 #include "sd-future.h"

@@ -4,6 +4,7 @@
 #include <sys/mount.h>
 #include <sys/prctl.h>
 #include <sys/wait.h>
+#include <unistd.h>
 #if HAVE_VALGRIND_VALGRIND_H
 #endif
 

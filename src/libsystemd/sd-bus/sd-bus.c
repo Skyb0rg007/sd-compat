@@ -3,6 +3,7 @@
 #include <netdb.h>
 #include <poll.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "sd-bus.h"
 #include "sd-future.h"

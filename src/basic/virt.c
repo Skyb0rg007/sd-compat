@@ -5,6 +5,8 @@
 #if defined(__aarch64__)
 #endif
 
+#include <unistd.h>
+
 #include "dirent-util.h"        /* IWYU pragma: keep */
 #include "log.h"
 #include "namespace-util.h"

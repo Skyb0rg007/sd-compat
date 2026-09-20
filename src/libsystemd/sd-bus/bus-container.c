@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
 
+#include <unistd.h>
+
 #include "bus-internal.h"
 #include "bus-socket.h"
 #include "env-file.h"

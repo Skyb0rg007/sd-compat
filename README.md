@@ -10,3 +10,11 @@ A libsystemd compatibility library.
 
 This repo contains a filtered systemd tree, and a plain Makefile to build
 and install libsystemd and its headers.
+
+## Building
+
+    make
+
+The library can be built against either glibc (the default) or musl:
+
+    make LIBC=musl CC=musl-gcc

@@ -8,35 +8,6 @@
 #include "process-util.h"
 #include "strv.h"
 
-#ifdef __GLIBC__
-#else
-
-static int add_locales_for_musl(Set *locales) {
-        int r;
-
-        assert(locales);
-
-        _cleanup_closedir_ DIR *dir = opendir(get_locale_dir());
-        if (!dir)
-                return errno == ENOENT ? 0 : -errno;
-
-        FOREACH_DIRENT(de, dir, return -errno) {
-                if (de->d_type != DT_REG)
-                        continue;
-
-                char *z = normalize_locale(de->d_name);
-                if (!z)
-                        return -ENOMEM;
-
-                r = set_consume(locales, z);
-                if (r < 0)
-                        return r;
-        }
-
-        return 0;
-}
-#endif
-
 static bool is_locale_utf8_impl(void) {
         const char *set;
         int r;

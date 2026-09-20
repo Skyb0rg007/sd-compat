@@ -2,6 +2,7 @@
 
 #include <poll.h>
 #include <sys/epoll.h>          /* IWYU pragma: keep */
+#include <unistd.h>
 
 #include "sd-event.h"
 #include "sd-future.h"

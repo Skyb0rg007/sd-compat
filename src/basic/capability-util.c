@@ -3,6 +3,7 @@
 #include <stdatomic.h>
 #include <sys/prctl.h> /* IWYU pragma: keep */
 #include <sys/syscall.h>
+#include <unistd.h>
 
 #include "bitfield.h"
 #include "capability-util.h"

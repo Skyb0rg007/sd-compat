@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "sd-messages.h"
 
@@ -50,7 +51,6 @@ static bool show_time = false;
 static bool show_tid = false;
 
 static bool upgrade_syslog_to_journal = false;
-static bool always_reopen_console = false;
 static bool open_when_needed = false;
 static bool prohibit_ipc = false;
 
@@ -83,23 +83,8 @@ static void log_close_console(void) {
 }
 
 static int log_open_console(void) {
-
-        if (!always_reopen_console) {
-                console_fd = STDERR_FILENO;
-                console_fd_is_tty = -1;
-                return 0;
-        }
-
-        if (console_fd < 3) {
-                int fd;
-
-                fd = open_terminal("/dev/console", O_WRONLY|O_NOCTTY|O_CLOEXEC);
-                if (fd < 0)
-                        return fd;
-
-                console_fd = fd_move_above_stdio(fd);
-                console_fd_is_tty = true;
-        }
+        console_fd = STDERR_FILENO;
+        console_fd_is_tty = -1;
 
         return 0;
 }

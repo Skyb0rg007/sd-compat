@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
 
+#include <unistd.h>
+
 #include "ansi-color.h"
 #include "devnum-util.h"
 #include "log.h"

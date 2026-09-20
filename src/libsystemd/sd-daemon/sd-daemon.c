@@ -2,6 +2,7 @@
 
 #include <linux/magic.h>
 #include <mqueue.h>
+#include <unistd.h>
 
 #include "sd-daemon.h"
 

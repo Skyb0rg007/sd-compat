@@ -6,6 +6,7 @@
 
 #include <errno.h>                      /* IWYU pragma: keep */
 #include <sys/syscall.h>                /* IWYU pragma: keep */
+#include <unistd.h>
 
 #include "process-util.h"
 #include "raw-clone.h"

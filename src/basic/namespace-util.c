@@ -1,9 +1,12 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
 #include <linux/magic.h>
+#include <linux/sockios.h>
 #include <linux/nsfs.h>
 #include <sched.h>
+#include <sys/ioctl.h>
 #include <sys/mount.h>
+#include <unistd.h>
 
 #include "capability-util.h"
 #include "dlfcn-util.h"
