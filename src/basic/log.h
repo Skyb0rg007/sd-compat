@@ -33,7 +33,6 @@ assert_cc(LOG_NULL == -1);
 
 /* The callback function to be invoked when syntax warnings are seen
  * in the unit files. */
-typedef void (*log_syntax_callback_t)(const char *unit, int level, void *userdata);
 
 void log_set_target(LogTarget target);
 LogTarget log_get_target(void) _pure_;
@@ -235,25 +234,6 @@ void log_set_open_when_needed(bool b);
 
 /* If turned on, then we'll never use IPC-based logging, i.e. never log to syslog or the journal. We'll only log to
  * stderr, the console or kmsg */
-
-int log_syntax_internal(
-                const char *unit,
-                int level,
-                const char *config_file,
-                unsigned config_line,
-                int error,
-                const char *file,
-                int line,
-                const char *func,
-                const char *format, ...) _printf_(9, 10);
-
-#define log_syntax(unit, level, config_file, config_line, error, ...)   \
-        ({                                                              \
-                int _level = (level), _e = (error);                     \
-                (log_get_max_level() >= LOG_PRI(_level))                \
-                        ? log_syntax_internal(unit, _level, config_file, config_line, _e, PROJECT_FILE, __LINE__, __func__, __VA_ARGS__) \
-                        : -ERRNO_VALUE(_e);                             \
-        })
 
 #define DEBUG_LOGGING _unlikely_(log_get_max_level() >= LOG_DEBUG)
 

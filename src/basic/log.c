@@ -23,8 +23,6 @@
 #define SNDBUF_SIZE (8*1024*1024)
 #define IOVEC_MAX 256U
 
-static log_syntax_callback_t log_syntax_callback = NULL;
-static void *log_syntax_callback_userdata = NULL;
 
 static LogTarget log_target = LOG_TARGET_CONSOLE;
 static int log_max_level = LOG_INFO;
@@ -1005,79 +1003,6 @@ bool log_get_show_color(void) {
         return show_color > 0; /* Defaults to false. */
 }
 
-int log_syntax_internal(
-                const char *unit,
-                int level,
-                const char *config_file,
-                unsigned config_line,
-                int error,
-                const char *file,
-                int line,
-                const char *func,
-                const char *format, ...) {
-
-        PROTECT_ERRNO;
-
-        if (log_syntax_callback)
-                log_syntax_callback(unit, level, log_syntax_callback_userdata);
-
-        if (_likely_(LOG_PRI(level) > log_max_level) ||
-            log_target == LOG_TARGET_NULL)
-                return -ERRNO_VALUE(error);
-
-        char buffer[LINE_MAX];
-        va_list ap;
-        const char *unit_fmt = NULL;
-
-        errno = ERRNO_VALUE(error);
-
-        va_start(ap, format);
-        (void) vsnprintf(buffer, sizeof buffer, format, ap);
-        va_end(ap);
-
-        if (unit)
-                unit_fmt = getpid_cached() == 1 ? "UNIT=%s" : "USER_UNIT=%s";
-
-        if (config_file) {
-                if (config_line > 0)
-                        return log_struct_internal(
-                                        level,
-                                        error,
-                                        file, line, func,
-                                        LOG_MESSAGE_ID(SD_MESSAGE_INVALID_CONFIGURATION_STR),
-                                        LOG_ITEM("CONFIG_FILE=%s", config_file),
-                                        LOG_ITEM("CONFIG_LINE=%u", config_line),
-                                        LOG_MESSAGE("%s:%u: %s", config_file, config_line, buffer),
-                                        unit_fmt, unit,
-                                        NULL);
-                else
-                        return log_struct_internal(
-                                        level,
-                                        error,
-                                        file, line, func,
-                                        LOG_MESSAGE_ID(SD_MESSAGE_INVALID_CONFIGURATION_STR),
-                                        LOG_ITEM("CONFIG_FILE=%s", config_file),
-                                        LOG_MESSAGE("%s: %s", config_file, buffer),
-                                        unit_fmt, unit,
-                                        NULL);
-        } else if (unit)
-                return log_struct_internal(
-                                level,
-                                error,
-                                file, line, func,
-                                LOG_MESSAGE_ID(SD_MESSAGE_INVALID_CONFIGURATION_STR),
-                                LOG_MESSAGE("%s: %s", unit, buffer),
-                                unit_fmt, unit,
-                                NULL);
-        else
-                return log_struct_internal(
-                                level,
-                                error,
-                                file, line, func,
-                                LOG_MESSAGE_ID(SD_MESSAGE_INVALID_CONFIGURATION_STR),
-                                LOG_MESSAGE("%s", buffer),
-                                NULL);
-}
 
 void log_set_open_when_needed(bool b) {
         open_when_needed = b;
