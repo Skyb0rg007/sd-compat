@@ -34,8 +34,6 @@
 
 bool isatty_safe(int fd);
 
-int open_terminal(const char *name, int mode);
-
 typedef enum GetCompletionsFlags {
         /* Only return the items subject to preselection: typically you want to suppress meta entries such as
          * "list" or alias entries if this flag is set. */

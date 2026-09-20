@@ -52,8 +52,6 @@ static inline void *set_first(const Set *s) {
 
 int set_ensure_put(Set **s, const struct hash_ops *hash_ops, const void *key);
 
-int set_consume(Set *s, void *value);
-
 #define _SET_FOREACH(e, s, i) \
         for (Iterator i = ITERATOR_FIRST; set_iterate((s), &i, (void**)&(e)); )
 #define SET_FOREACH(e, s) \
