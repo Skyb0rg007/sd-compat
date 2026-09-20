@@ -91,12 +91,6 @@ typedef enum CGroupMask {
  * generate paths with multiple adjacent / removed.
  */
 
-typedef enum CGroupFlags {
-        CGROUP_SIGCONT            = 1 << 0,
-        CGROUP_IGNORE_SELF        = 1 << 1,
-        CGROUP_DONT_SKIP_UNMAPPED = 1 << 2,
-} CGroupFlags;
-
 typedef int (*cg_kill_log_func_t)(const PidRef *pid, int sig, void *userdata);
 
 int cg_pid_get_path(pid_t pid, char **ret);

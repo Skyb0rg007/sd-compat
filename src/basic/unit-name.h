@@ -16,9 +16,3 @@ typedef enum UnitNameFlags {
 bool unit_name_is_valid(const char *n, UnitNameFlags flags) _pure_;
 
 UnitNameFlags unit_name_to_instance(const char *n, char **ret);
-
-typedef enum UnitNameMangle {
-        UNIT_NAME_MANGLE_GLOB   = 1 << 0,
-        UNIT_NAME_MANGLE_WARN   = 1 << 1,
-        UNIT_NAME_MANGLE_STRICT = 1 << 2, /* Refuse if the resolved unit type doesn't match the requested suffix */
-} UnitNameMangle;
