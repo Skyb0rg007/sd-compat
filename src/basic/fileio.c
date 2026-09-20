@@ -15,9 +15,6 @@
 
 /* The maximum size of the file we'll read in one go in read_full_file() (64M). */
 #define READ_FULL_BYTES_MAX (64U * U64_MB - UINT64_C(1))
-/* Used when a size is specified for read_full_file() with READ_FULL_FILE_UNBASE64 or _UNHEX */
-#define READ_FULL_FILE_ENCODED_STRING_AMPLIFICATION_BOUNDARY 3
-
 /* The maximum size of virtual files (i.e. procfs, sysfs, and other virtual "API" files) we'll read in one go
  * in read_virtual_file(). Note that this limit is different (and much lower) than the READ_FULL_BYTES_MAX
  * limit. This reflects the fact that we use different strategies for reading virtual and regular files:
@@ -266,23 +263,15 @@ int read_full_stream_full(
                 size_t *ret_size) {
 
         _cleanup_free_ char *buf = NULL;
-        size_t n, n_next = 0, l, expected_decoded_size = size;
-        int fd, r;
+        size_t n, n_next = 0, l;
+        int fd;
 
         assert(f);
         assert(ret_contents);
-        assert(!FLAGS_SET(flags, READ_FULL_FILE_UNBASE64 | READ_FULL_FILE_UNHEX));
-        assert(size != SIZE_MAX || !FLAGS_SET(flags, READ_FULL_FILE_FAIL_WHEN_LARGER));
+        assert((flags & READ_FULL_FILE_UNSUPPORTED) == 0);
 
         if (offset != UINT64_MAX && offset > LONG_MAX) /* fseek() can only deal with "long" offsets */
                 return -ERANGE;
-
-        if ((flags & (READ_FULL_FILE_UNBASE64 | READ_FULL_FILE_UNHEX)) != 0) {
-                if (size <= SIZE_MAX / READ_FULL_FILE_ENCODED_STRING_AMPLIFICATION_BOUNDARY)
-                        size *= READ_FULL_FILE_ENCODED_STRING_AMPLIFICATION_BOUNDARY;
-                else
-                        size = SIZE_MAX;
-        }
 
         fd = fileno(f);
         if (fd >= 0) { /* If the FILE* object is backed by an fd (as opposed to memory or such, see
@@ -292,12 +281,6 @@ int read_full_stream_full(
                 if (fstat(fd, &st) < 0)
                         return -errno;
 
-                if (FLAGS_SET(flags, READ_FULL_FILE_VERIFY_REGULAR)) {
-                        r = stat_verify_regular(&st);
-                        if (r < 0)
-                                return r;
-                }
-
                 if (S_ISREG(st.st_mode)) {
 
                         /* Try to start with the right file size if we shall read the file in full. Note
@@ -306,8 +289,7 @@ int read_full_stream_full(
                          * avoid this logic however, since quite likely it might be a virtual file in procfs
                          * that all report a zero file size. */
 
-                        if (st.st_size > 0 &&
-                            (size == SIZE_MAX || FLAGS_SET(flags, READ_FULL_FILE_FAIL_WHEN_LARGER))) {
+                        if (st.st_size > 0 && size == SIZE_MAX) {
 
                                 uint64_t rsize =
                                         LESS_BY((uint64_t) st.st_size, offset == UINT64_MAX ? 0 : offset);
@@ -315,19 +297,13 @@ int read_full_stream_full(
                                 if (rsize < SIZE_MAX) /* overflow check */
                                         n_next = rsize + 1;
                         }
-
-                        if (flags & READ_FULL_FILE_WARN_WORLD_READABLE)
-                                (void) warn_file_is_world_accessible(filename, &st, NULL, 0);
                 }
-        } else if (FLAGS_SET(flags, READ_FULL_FILE_VERIFY_REGULAR))
-                return -EBADFD;
+        }
 
         /* If we don't know how much to read, figure it out now. If we shall read a part of the file, then
-         * allocate the requested size. If we shall load the full file start with LINE_MAX. Note that if
-         * READ_FULL_FILE_FAIL_WHEN_LARGER we consider the specified size a safety limit, and thus also start
-         * with LINE_MAX, under assumption the file is most likely much shorter. */
+         * allocate the requested size. If we shall load the full file start with LINE_MAX. */
         if (n_next == 0)
-                n_next = size != SIZE_MAX && !FLAGS_SET(flags, READ_FULL_FILE_FAIL_WHEN_LARGER) ? size : LINE_MAX;
+                n_next = size != SIZE_MAX ? size : LINE_MAX;
 
         /* Never read more than we need to determine that our own limit is hit */
         if (n_next > READ_FULL_BYTES_MAX)
@@ -341,25 +317,9 @@ int read_full_stream_full(
                 char *t;
                 size_t k;
 
-                /* If we shall fail when reading overly large data, then read exactly one byte more than the
-                 * specified size at max, since that'll tell us if there's anymore data beyond the limit. */
-                if (FLAGS_SET(flags, READ_FULL_FILE_FAIL_WHEN_LARGER) && n_next > size)
-                        n_next = size + 1;
-
-                if (flags & READ_FULL_FILE_SECURE) {
-                        t = malloc(n_next + 1);
-                        if (!t) {
-                                r = -ENOMEM;
-                                goto finalize;
-                        }
-                        memcpy_safe(t, buf, n);
-                        explicit_bzero_safe(buf, n);
-                        free(buf);
-                } else {
-                        t = realloc(buf, n_next + 1);
-                        if (!t)
-                                return -ENOMEM;
-                }
+                t = realloc(buf, n_next + 1);
+                if (!t)
+                        return -ENOMEM;
 
                 buf = t;
                 /* Unless a size has been explicitly specified, try to read as much as fits into the memory
@@ -372,14 +332,12 @@ int read_full_stream_full(
                 assert(k <= n - l);
                 l += k;
 
-                if (ferror(f)) {
-                        r = errno_or_else(EIO);
-                        goto finalize;
-                }
+                if (ferror(f))
+                        return errno_or_else(EIO);
                 if (feof(f))
                         break;
 
-                if (size != SIZE_MAX && !FLAGS_SET(flags, READ_FULL_FILE_FAIL_WHEN_LARGER)) {
+                if (size != SIZE_MAX) {
                         /* If we got asked to read some specific size, we already sized the buffer right,
                          * hence leave. */
                         assert(l == size);
@@ -388,40 +346,10 @@ int read_full_stream_full(
 
                 assert(k > 0); /* we can't have read zero bytes because that would have been EOF */
 
-                if (FLAGS_SET(flags, READ_FULL_FILE_FAIL_WHEN_LARGER) && l > size) {
-                        r = -E2BIG;
-                        goto finalize;
-                }
-
-                if (n >= READ_FULL_BYTES_MAX) {
-                        r = -E2BIG;
-                        goto finalize;
-                }
+                if (n >= READ_FULL_BYTES_MAX)
+                        return -E2BIG;
 
                 n_next = MIN(n * 2, READ_FULL_BYTES_MAX);
-        }
-
-        if (flags & (READ_FULL_FILE_UNBASE64 | READ_FULL_FILE_UNHEX)) {
-                _cleanup_free_ void *decoded = NULL;
-                size_t decoded_size;
-
-                buf[l++] = 0;
-                if (flags & READ_FULL_FILE_UNBASE64)
-                        r = unbase64mem_full(buf, l, flags & READ_FULL_FILE_SECURE, &decoded, &decoded_size);
-                else
-                        r = unhexmem_full(buf, l, flags & READ_FULL_FILE_SECURE, &decoded, &decoded_size);
-                if (r < 0)
-                        goto finalize;
-
-                if (flags & READ_FULL_FILE_SECURE)
-                        explicit_bzero_safe(buf, n);
-                free_and_replace(buf, decoded);
-                n = l = decoded_size;
-
-                if (FLAGS_SET(flags, READ_FULL_FILE_FAIL_WHEN_LARGER) && l > expected_decoded_size) {
-                        r = -E2BIG;
-                        goto finalize;
-                }
         }
 
         if (!ret_size) {
@@ -429,10 +357,8 @@ int read_full_stream_full(
                  * rely on the trailing NUL byte. But if there's an embedded NUL byte, then we should refuse
                  * operation as otherwise there'd be ambiguity about what we just read. */
 
-                if (memchr(buf, 0, l)) {
-                        r = -EBADMSG;
-                        goto finalize;
-                }
+                if (memchr(buf, 0, l))
+                        return -EBADMSG;
         }
 
         buf[l] = 0;
@@ -442,12 +368,6 @@ int read_full_stream_full(
                 *ret_size = l;
 
         return 0;
-
-finalize:
-        if (flags & READ_FULL_FILE_SECURE)
-                explicit_bzero_safe(buf, n);
-
-        return r;
 }
 
 int read_full_file_full(
@@ -461,16 +381,12 @@ int read_full_file_full(
                 size_t *ret_size) {
 
         _cleanup_fclose_ FILE *f = NULL;
-        XfopenFlags xflags = XFOPEN_UNLOCKED;
         int r;
 
         assert(ret_contents);
+        assert((flags & READ_FULL_FILE_UNSUPPORTED) == 0);
 
-        if (FLAGS_SET(flags, READ_FULL_FILE_CONNECT_SOCKET) && /* If this is enabled, let's try to connect to it */
-            offset == UINT64_MAX)                              /* Seeking is not supported on AF_UNIX sockets */
-                xflags |= XFOPEN_SOCKET;
-
-        r = xfopenat_full(dir_fd, filename, "re", 0, xflags, bind_name, &f);
+        r = xfopenat_full(dir_fd, filename, "re", 0, XFOPEN_UNLOCKED, bind_name, &f);
         if (r < 0)
                 return r;
 
@@ -612,47 +528,6 @@ static int xfopenat_regular(int dir_fd, const char *path, const char *mode, int 
         return 0;
 }
 
-static int xfopenat_unix_socket(int dir_fd, const char *path, const char *bind_name, FILE **ret) {
-        _cleanup_close_ int sk = -EBADF;
-        FILE *f;
-        int r;
-
-        assert(wildcard_fd_is_valid(dir_fd));
-        assert(ret);
-
-        sk = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
-        if (sk < 0)
-                return -errno;
-
-        if (bind_name) {
-                /* If the caller specified a socket name to bind to, do so before connecting. This is
-                 * useful to communicate some minor, short meta-information token from the client to
-                 * the server. */
-                union sockaddr_union bsa;
-
-                r = sockaddr_un_set_path(&bsa.un, bind_name);
-                if (r < 0)
-                        return r;
-
-                if (bind(sk, &bsa.sa, r) < 0)
-                        return -errno;
-        }
-
-        r = connect_unix_path(sk, dir_fd, path);
-        if (r < 0)
-                return r;
-
-        if (shutdown(sk, SHUT_WR) < 0)
-                return -errno;
-
-        f = take_fdopen(&sk, "r");
-        if (!f)
-                return -errno;
-
-        *ret = f;
-        return 0;
-}
-
 int xfopenat_full(
                 int dir_fd,
                 const char *path,
@@ -668,14 +543,9 @@ int xfopenat_full(
         assert(wildcard_fd_is_valid(dir_fd));
         assert(mode);
         assert(ret);
+        assert((flags & XFOPEN_UNSUPPORTED) == 0);
 
         r = xfopenat_regular(dir_fd, path, mode, open_flags, &f);
-        if (r == -ENXIO && FLAGS_SET(flags, XFOPEN_SOCKET)) {
-                /* ENXIO is what Linux returns if we open a node that is an AF_UNIX socket */
-                r = xfopenat_unix_socket(dir_fd, path, bind_name, &f);
-                if (IN_SET(r, -ENOTSOCK, -EINVAL))
-                        return -ENXIO; /* propagate original error if this is not a socket after all */
-        }
         if (r < 0)
                 return r;
 
@@ -896,29 +766,3 @@ int safe_fgetc(FILE *f, char *ret) {
 
         return 1;
 }
-
-int warn_file_is_world_accessible(const char *filename, struct stat *st, const char *unit, unsigned line) {
-        struct stat _st;
-
-        if (!filename)
-                return 0;
-
-        if (!st) {
-                if (stat(filename, &_st) < 0)
-                        return -errno;
-                st = &_st;
-        }
-
-        if ((st->st_mode & S_IRWXO) == 0)
-                return 0;
-
-        if (unit)
-                log_syntax(unit, LOG_WARNING, filename, line, 0,
-                           "%s has %04o mode that is too permissive, please adjust the ownership and access mode.",
-                           filename, st->st_mode & 07777);
-        else
-                log_warning("%s has %04o mode that is too permissive, please adjust the ownership and access mode.",
-                            filename, st->st_mode & 07777);
-        return 0;
-}
-

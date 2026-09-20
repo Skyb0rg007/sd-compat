@@ -15,6 +15,16 @@ typedef enum {
         READ_FULL_FILE_VERIFY_REGULAR      = 1 << 6, /* before reading, verify this is a regular file */
 } ReadFullFileFlags;
 
+/* None of the above is implemented anymore: every caller reads a plain file in full. */
+#define READ_FULL_FILE_UNSUPPORTED              \
+        (READ_FULL_FILE_SECURE |                \
+         READ_FULL_FILE_UNBASE64 |              \
+         READ_FULL_FILE_UNHEX |                 \
+         READ_FULL_FILE_WARN_WORLD_READABLE |   \
+         READ_FULL_FILE_CONNECT_SOCKET |        \
+         READ_FULL_FILE_FAIL_WHEN_LARGER |      \
+         READ_FULL_FILE_VERIFY_REGULAR)
+
 int fdopen_unlocked(int fd, const char *options, FILE **ret);
 int take_fdopen_unlocked(int *fd, const char *options, FILE **ret);
 FILE* take_fdopen(int *fd, const char *options);
@@ -48,6 +58,9 @@ typedef enum XfopenFlags {
         XFOPEN_UNLOCKED = 1 << 0, /* call __fsetlocking(FSETLOCKING_BYCALLER) after opened */
         XFOPEN_SOCKET   = 1 << 1, /* also try to open unix socket */
 } XfopenFlags;
+
+/* xfopenat_full() no longer knows how to connect to a unix socket, so bind_name is unused too. */
+#define XFOPEN_UNSUPPORTED (XFOPEN_SOCKET)
 
 int xfopenat_full(
                 int dir_fd,
@@ -87,6 +100,5 @@ int read_stripped_line(FILE *f, size_t limit, char **ret);
 
 int safe_fgetc(FILE *f, char *ret);
 
-int warn_file_is_world_accessible(const char *filename, struct stat *st, const char *unit, unsigned line);
 
 int fopen_mode_to_flags(const char *mode);
