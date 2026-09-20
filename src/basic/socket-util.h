@@ -61,8 +61,6 @@ int sockaddr_port(const struct sockaddr *_sa, unsigned *port);
 
 int sockaddr_pretty(const struct sockaddr *_sa, socklen_t salen, bool translate_ipv6, bool include_port, char **ret);
 
-DECLARE_STRING_TABLE_LOOKUP_WITH_FALLBACK(netlink_family, int);
-
 int fd_set_sndbuf(int fd, size_t n, bool increase);
 static inline int fd_inc_sndbuf(int fd, size_t n) {
         return fd_set_sndbuf(fd, n, true);
@@ -71,8 +69,6 @@ int fd_set_rcvbuf(int fd, size_t n, bool increase);
 static inline int fd_increase_rxbuf(int fd, size_t n) {
         return fd_set_rcvbuf(fd, n, true);
 }
-
-DECLARE_STRING_TABLE_LOOKUP_WITH_FALLBACK(ip_tos, int);
 
 typedef enum {
         IFNAME_VALID_ALTERNATIVE = 1 << 0, /* Allow "altnames" too */

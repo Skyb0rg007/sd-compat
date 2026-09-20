@@ -12,5 +12,3 @@ typedef enum RuntimeScope {
 } RuntimeScope;
 
 DECLARE_STRING_TABLE_LOOKUP(runtime_scope, RuntimeScope);
-DECLARE_STRING_TABLE_LOOKUP_TO_STRING(runtime_scope_cmdline_option, RuntimeScope);
-

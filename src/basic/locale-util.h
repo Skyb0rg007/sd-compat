@@ -33,12 +33,9 @@ typedef enum LocaleVariable {
 
 bool is_locale_utf8(void);
 
-DECLARE_STRING_TABLE_LOOKUP(locale_variable, LocaleVariable);
-
 static inline void freelocalep(locale_t *p) {
         if (*p == (locale_t) 0)
                 return;
 
         freelocale(*p);
 }
-

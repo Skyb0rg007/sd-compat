@@ -75,22 +75,12 @@ void string_hash_func(const char *p, struct siphash *state);
 #define string_compare_func strcmp
 extern const struct hash_ops string_hash_ops;
 extern const struct hash_ops string_hash_ops_free;
-extern const struct hash_ops string_hash_ops_value_free;
-extern const struct hash_ops string_hash_ops_free_free;
-extern const struct hash_ops string_hash_ops_free_strv_free;
-
-extern const struct hash_ops path_hash_ops;
-extern const struct hash_ops path_hash_ops_free;
-extern const struct hash_ops path_hash_ops_free_free;
 
 /* This will compare the passed pointers directly, and will not dereference them. This is hence not useful for strings
  * or suchlike. */
 void trivial_hash_func(const void *p, struct siphash *state);
 int trivial_compare_func(const void *a, const void *b) _const_;
 extern const struct hash_ops trivial_hash_ops;
-extern const struct hash_ops trivial_hash_ops_free;
-extern const struct hash_ops trivial_hash_ops_value_free;
-extern const struct hash_ops trivial_hash_ops_free_free;
 
 /* 32-bit values we can always just embed in the pointer itself, but in order to support 32-bit archs we need store 64-bit
  * values indirectly, since they don't fit in a pointer. */
@@ -106,5 +96,3 @@ void devt_hash_func(const dev_t *p, struct siphash *state);
 #else
 #define devt_hash_func uint64_hash_func
 #endif
-
-extern const struct hash_ops devt_hash_ops;

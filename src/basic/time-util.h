@@ -181,5 +181,3 @@ static inline usec_t usec_sub_unsigned(usec_t timestamp, usec_t delta) {
 #else
 #  error "Yuck, time_t is neither 4 nor 8 bytes wide?"
 #endif
-
-DECLARE_STRING_TABLE_LOOKUP(timestamp_style, TimestampStyle);

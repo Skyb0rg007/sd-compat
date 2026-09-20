@@ -35,7 +35,6 @@ assert_cc(LOG_NULL == -1);
  * in the unit files. */
 typedef void (*log_syntax_callback_t)(const char *unit, int level, void *userdata);
 
-DECLARE_STRING_TABLE_LOOKUP(log_target, LogTarget);
 void log_set_target(LogTarget target);
 LogTarget log_get_target(void) _pure_;
 void log_settle_target(void);

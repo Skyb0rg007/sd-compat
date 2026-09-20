@@ -21,9 +21,6 @@ static inline int id128_read(const char *path, Id128Flag f, sd_id128_t *ret) {
         return id128_read_at(AT_FDCWD, path, f, ret);
 }
 
-extern const struct hash_ops id128_hash_ops;
-extern const struct hash_ops id128_hash_ops_free;
-
 sd_id128_t id128_make_v4_uuid(sd_id128_t id);
 
 int id128_get_boot(sd_id128_t *ret);

@@ -152,9 +152,3 @@ int strv_extend_assignment(char ***l, const char *lhs, const char *rhs);
         free_and_replace_full(a, b, strv_free)
 
 int strv_rebreak_lines(char **l, size_t width, char ***ret);
-
-/* whenever we need to initialize something with a constant non-NULL, but empty strv, we can use this shared
- * one */
-extern const char* const strv_empty[1];
-
-#define STRV_EMPTY ((char**) strv_empty)

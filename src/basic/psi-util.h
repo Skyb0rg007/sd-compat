@@ -50,9 +50,6 @@ static inline const PressureResourceInfo* pressure_resource_get_info(PressureRes
         return &pressure_resource_info[resource];
 }
 
-DECLARE_STRING_TABLE_LOOKUP(pressure_resource, PressureResource);
-DECLARE_STRING_TABLE_LOOKUP(pressure_type, PressureType);
-
 /* Default parameters for pressure watch logic in sd-event and PID 1 */
 #define PRESSURE_DEFAULT_TYPE "some"
 #define PRESSURE_DEFAULT_THRESHOLD_USEC (200 * USEC_PER_MSEC)

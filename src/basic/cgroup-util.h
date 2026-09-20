@@ -87,10 +87,6 @@ typedef enum CGroupIOLimitType {
         _CGROUP_IO_LIMIT_TYPE_INVALID = -EINVAL,
 } CGroupIOLimitType;
 
-extern const uint64_t cgroup_io_limit_defaults[_CGROUP_IO_LIMIT_TYPE_MAX];
-
-DECLARE_STRING_TABLE_LOOKUP(cgroup_io_limit_type, CGroupIOLimitType);
-
 /* Special values for the io.bfq.weight attribute */
 #define CGROUP_BFQ_WEIGHT_INVALID UINT64_MAX
 #define CGROUP_BFQ_WEIGHT_MIN UINT64_C(1)
@@ -142,16 +138,12 @@ int cg_path_decode_unit(const char *cgroup, char **ret_unit);
 
 char* cg_unescape(const char *p) _pure_;
 
-DECLARE_STRING_TABLE_LOOKUP(cgroup_controller, CGroupController);
-
 typedef enum ManagedOOMMode {
         MANAGED_OOM_AUTO,
         MANAGED_OOM_KILL,
         _MANAGED_OOM_MODE_MAX,
         _MANAGED_OOM_MODE_INVALID = -EINVAL,
 } ManagedOOMMode;
-
-DECLARE_STRING_TABLE_LOOKUP(managed_oom_mode, ManagedOOMMode);
 
 typedef enum ManagedOOMPreference {
         MANAGED_OOM_PREFERENCE_NONE = 0,
@@ -160,5 +152,3 @@ typedef enum ManagedOOMPreference {
         _MANAGED_OOM_PREFERENCE_MAX,
         _MANAGED_OOM_PREFERENCE_INVALID = -EINVAL,
 } ManagedOOMPreference;
-
-DECLARE_STRING_TABLE_LOOKUP(managed_oom_preference, ManagedOOMPreference);

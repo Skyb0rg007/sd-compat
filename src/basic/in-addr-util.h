@@ -51,11 +51,6 @@ typedef enum InAddrPrefixLenMode {
  * See also oss-fuzz#11344. */
 #define IN_ADDR_NULL ((union in_addr_union) { .in6 = {} })
 
-extern const struct hash_ops in_addr_data_hash_ops;
-extern const struct hash_ops in_addr_data_hash_ops_free;
-extern const struct hash_ops in6_addr_hash_ops;
-extern const struct hash_ops in6_addr_hash_ops_free;
-
 #define IPV4_ADDRESS_FMT_STR     "%u.%u.%u.%u"
 #define IPV4_ADDRESS_FMT_VAL(address)              \
         be32toh((address).s_addr) >> 24,           \

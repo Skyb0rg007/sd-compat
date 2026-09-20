@@ -71,9 +71,6 @@ bool is_main_thread(void);
  * personality we're interested in. */
 #define OPINIONATED_PERSONALITY_MASK 0xFFUL
 
-DECLARE_STRING_TABLE_LOOKUP(sigchld_code, int);
-DECLARE_STRING_TABLE_LOOKUP_WITH_FALLBACK(sched_policy, int);
-
 static inline void* PID_TO_PTR(pid_t pid) {
         return (void*) ((uintptr_t) pid);
 }

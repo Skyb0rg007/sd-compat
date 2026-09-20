@@ -28,9 +28,6 @@ typedef enum HardwareAddressToStringFlags {
 
 bool hw_addr_is_null(const struct hw_addr_data *addr) _pure_;
 
-extern const struct hash_ops hw_addr_hash_ops;
-extern const struct hash_ops hw_addr_hash_ops_free;
-
 #define ETHER_ADDR_FORMAT_STR "%02X%02X%02X%02X%02X%02X"
 #define ETHER_ADDR_FORMAT_VAL(x) (x).ether_addr_octet[0], (x).ether_addr_octet[1], (x).ether_addr_octet[2], (x).ether_addr_octet[3], (x).ether_addr_octet[4], (x).ether_addr_octet[5]
 
@@ -46,6 +43,3 @@ static inline bool ether_addr_equal(const struct ether_addr *a, const struct eth
 static inline bool ether_addr_is_null(const struct ether_addr *addr) {
         return ether_addr_equal(addr, &ETHER_ADDR_NULL);
 }
-
-extern const struct hash_ops ether_addr_hash_ops;
-extern const struct hash_ops ether_addr_hash_ops_free;

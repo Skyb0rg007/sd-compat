@@ -245,5 +245,3 @@ typedef enum Architecture {
 #else
 #  define STACK_GROWS_UP 0
 #endif
-
-DECLARE_STRING_TABLE_LOOKUP(architecture, Architecture);

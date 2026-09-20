@@ -29,6 +29,4 @@ int signal_is_blocked(int sig);
 
 int autoreaping_enabled(void);
 
-extern const struct sigaction sigaction_ignore;
 extern const struct sigaction sigaction_default;
-extern const struct sigaction sigaction_nop_nocldstop;

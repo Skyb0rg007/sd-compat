@@ -108,6 +108,3 @@ int pidref_verify(const PidRef *pidref);
 #define TAKE_PIDREF(p) TAKE_GENERIC((p), PidRef, PIDREF_NULL)
 
 struct siphash;
-
-extern const struct hash_ops pidref_hash_ops;
-extern const struct hash_ops pidref_hash_ops_free; /* Has destructor call for pidref_free(), i.e. expects heap allocated PidRef as keys */
