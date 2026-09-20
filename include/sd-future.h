@@ -23,10 +23,7 @@
 
 _SD_BEGIN_DECLARATIONS;
 
-struct iovec;
 struct pollfd;
-struct sockaddr;
-struct msghdr;
 struct timespec;
 
 typedef struct sd_event sd_event;
@@ -56,12 +53,9 @@ int sd_future_resolve(sd_future *f, int result);
 
 _SD_DECLARE_TRIVIAL_REF_UNREF_FUNC(sd_future);
 _SD_DEFINE_POINTER_CLEANUP_FUNC(sd_future, sd_future_unref);
-void sd_future_unref_array_clear(sd_future *array[], size_t n);
-void sd_future_unref_array(sd_future *array[], size_t n);
 
 sd_future* sd_future_cancel_wait_unref(sd_future *f);
 _SD_DEFINE_POINTER_CLEANUP_FUNC(sd_future, sd_future_cancel_wait_unref);
-void sd_future_cancel_wait_unref_array_clear(sd_future *array[], size_t n);
 void sd_future_cancel_wait_unref_array(sd_future *array[], size_t n);
 
 int sd_future_state(sd_future *f);
@@ -78,15 +72,12 @@ int sd_future_new_wait(sd_future *target, sd_future **ret);
 int sd_fiber_new(sd_event *e, const char *name, sd_fiber_func_t func, void *userdata, sd_fiber_destroy_t destroy, sd_future **ret);
 
 int sd_fiber_set_floating(sd_future *f, int b);
-int sd_fiber_get_floating(sd_future *f);
 
 int sd_fiber_is_running(void);
 sd_future* sd_fiber_get_current(void);
 int sd_fiber_get_priority(int64_t *ret);
 sd_event* sd_fiber_get_event(void);
 
-int sd_fiber_yield(void);
-int sd_fiber_sleep(uint64_t usec);
 int sd_fiber_await(sd_future *target);
 int sd_fiber_suspend(void);
 int sd_fiber_resume(sd_future *f, int result);
@@ -107,16 +98,6 @@ sd_future* sd_fiber_timeout(uint64_t timeout);
 /* Fiber I/O operations - use sd-event for non-blocking I/O when in fiber context */
 ssize_t sd_fiber_read(int fd, void *buf, size_t count);
 ssize_t sd_fiber_write(int fd, const void *buf, size_t count);
-ssize_t sd_fiber_readv(int fd, const struct iovec *iov, int iovcnt);
-ssize_t sd_fiber_writev(int fd, const struct iovec *iov, int iovcnt);
-ssize_t sd_fiber_recv(int sockfd, void *buf, size_t len, int flags);
-ssize_t sd_fiber_send(int sockfd, const void *buf, size_t len, int flags);
-int sd_fiber_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
-ssize_t sd_fiber_recvmsg(int sockfd, struct msghdr *msg, int flags);
-ssize_t sd_fiber_sendmsg(int sockfd, const struct msghdr *msg, int flags);
-ssize_t sd_fiber_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen);
-ssize_t sd_fiber_sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen);
-int sd_fiber_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags);
 #ifndef __STRICT_ANSI__
 int sd_fiber_ppoll(struct pollfd *fds, size_t n_fds, const struct timespec *timeout, const sigset_t *sigmask);
 #endif

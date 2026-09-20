@@ -191,8 +191,6 @@ static inline usec_t usec_sub_unsigned(usec_t timestamp, usec_t delta) {
         return timestamp - delta;
 }
 
-int usleep_safe(usec_t usec);
-
 /* The last second we can format is 31. Dec 9999, 1s before midnight, because otherwise we'd enter 5 digit
  * year territory. However, since we want to stay away from this in all timezones we take one day off. */
 #define USEC_TIMESTAMP_FORMATTABLE_MAX_64BIT ((usec_t) 253402214399000000) /* Thu 9999-12-30 23:59:59 UTC */

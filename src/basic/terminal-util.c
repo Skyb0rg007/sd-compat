@@ -3,13 +3,11 @@
 
 #include "ansi-color.h"
 #include "devnum-util.h"
-#include "fd-util.h"
 #include "log.h"
 #include "path-util.h"
 #include "process-util.h"
 #include "stat-util.h"
 #include "terminal-util.h"
-#include "time-util.h"
 
 /* How much to wait when reading/writing ANSI sequences from/to the console */
 #define CONSOLE_ANSI_SEQUENCE_TIMEOUT_USEC (333 * USEC_PER_MSEC)
@@ -49,40 +47,6 @@ typedef enum CompletionResult{
         _COMPLETION_RESULT_INVALID = -EINVAL,
         _COMPLETION_RESULT_ERRNO_MAX = -ERRNO_MAX,
 } CompletionResult;
-
-int open_terminal(const char *name, int mode) {
-        _cleanup_close_ int fd = -EBADF;
-
-        /*
-         * If a TTY is in the process of being closed opening it might cause EIO. This is horribly awful, but
-         * unlikely to be changed in the kernel. Hence we work around this problem by retrying a couple of
-         * times.
-         *
-         * https://bugs.launchpad.net/ubuntu/+source/linux/+bug/554172/comments/245
-         */
-
-        assert((mode & (O_CREAT|O_PATH|O_DIRECTORY|O_TMPFILE)) == 0);
-
-        for (unsigned c = 0;; c++) {
-                fd = open(name, mode, 0);
-                if (fd >= 0)
-                        break;
-
-                if (errno != EIO)
-                        return -errno;
-
-                /* Max 1s in total */
-                if (c >= 20)
-                        return -EIO;
-
-                (void) usleep_safe(50 * USEC_PER_MSEC);
-        }
-
-        if (!isatty_safe(fd))
-                return -ENOTTY;
-
-        return TAKE_FD(fd);
-}
 
 /* intended to be used as a SIGWINCH sighandler */
 bool on_tty(void) {
