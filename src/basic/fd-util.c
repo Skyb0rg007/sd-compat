@@ -289,19 +289,6 @@ static int close_all_fds_special_case(const int except[], size_t n_except) {
         }
 }
 
-int close_all_fds_without_malloc(const int except[], size_t n_except) {
-        int r;
-
-        assert(n_except == 0 || except);
-
-        r = close_all_fds_special_case(except, n_except);
-        if (r < 0)
-                return r;
-        if (r > 0) /* special case worked! */
-                return 0;
-
-        return close_all_fds_frugal(except, n_except);
-}
 
 int close_all_fds(const int except[], size_t n_except) {
         int r;

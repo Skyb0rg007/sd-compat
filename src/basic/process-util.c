@@ -21,7 +21,6 @@
 #include "parse-util.h"
 #include "pidref.h"
 #include "process-util.h"
-#include "raw-clone.h"
 #include "rlimit-util.h"
 #include "signal-util.h"
 #include "socket-util.h"
@@ -143,6 +142,8 @@ int get_process_exe(pid_t pid, char **ret) {
  * and also if it returns non-zero unless check_exit_code is true.
  */
 int pidref_wait_for_terminate_and_check(const char *name, PidRef *pidref, WaitFlags flags) {
+        assert((flags & WAIT_UNSUPPORTED) == 0);
+
         int r;
 
         if (!pidref_is_set(pidref))
@@ -166,7 +167,7 @@ int pidref_wait_for_terminate_and_check(const char *name, PidRef *pidref, WaitFl
         siginfo_t status;
         r = pidref_wait_for_terminate(pidref, &status);
         if (r < 0)
-                return log_full_errno(prio, r, "Failed to wait for '%s': %m", strna(name));
+                return log_debug_errno(r, "Failed to wait for '%s': %m", strna(name));
 
         if (status.si_code == CLD_EXITED) {
                 if (status.si_status != EXIT_SUCCESS)
@@ -346,9 +347,7 @@ pid_t getpid_cached(void) {
 }
 
 static int fork_flags_to_signal(ForkFlags flags) {
-        return (flags & FORK_DEATHSIG_SIGTERM) ? SIGTERM :
-                (flags & FORK_DEATHSIG_SIGINT) ? SIGINT :
-                                                 SIGKILL;
+        return (flags & FORK_DEATHSIG_SIGTERM) ? SIGTERM : SIGKILL;
 }
 
 int pidref_safe_fork_full(
@@ -362,28 +361,18 @@ int pidref_safe_fork_full(
         pid_t original_pid, pid;
         sigset_t saved_ss, ss;
         _unused_ _cleanup_(block_signals_reset) sigset_t *saved_ssp = NULL;
-        bool block_signals = false, block_all = false, intermediary = false;
-        _cleanup_close_pair_ int pidref_transport_fds[2] = EBADF_PAIR;
-        int prio, r;
+        bool block_signals = false, block_all = false;
+        int r;
 
-        assert(!FLAGS_SET(flags, FORK_WAIT|FORK_FREEZE));
-        assert(!FLAGS_SET(flags, FORK_DETACH) ||
-               (flags & (FORK_WAIT|FORK_DEATHSIG_SIGTERM|FORK_DEATHSIG_SIGINT|FORK_DEATHSIG_SIGKILL)) == 0);
+        assert((flags & FORK_UNSUPPORTED) == 0);
 
         /* A wrapper around fork(), that does a couple of important initializations in addition to mere
          * forking. If provided, ret is initialized in both the parent and the child process, both times
          * referencing the child process. Returns == 0 in the child and > 0 in the parent. */
 
-        prio = flags & FORK_LOG ? LOG_ERR : LOG_DEBUG;
-
         original_pid = getpid_cached();
 
-        if (flags & FORK_FLUSH_STDIO) {
-                fflush(stdout);
-                fflush(stderr); /* This one shouldn't be necessary, stderr should be unbuffered anyway, but let's better be safe than sorry */
-        }
-
-        if (flags & (FORK_RESET_SIGNALS|FORK_DEATHSIG_SIGTERM|FORK_DEATHSIG_SIGINT)) {
+        if (flags & (FORK_RESET_SIGNALS|FORK_DEATHSIG_SIGTERM)) {
                 /* We temporarily block all signals, so that the new child has them blocked initially. This
                  * way, we can be sure that SIGTERMs are not lost we might send to the child. (Note that for
                  * FORK_DEATHSIG_SIGKILL we don't bother, since it cannot be blocked anyway.) */
@@ -401,102 +390,14 @@ int pidref_safe_fork_full(
 
         if (block_signals) {
                 if (sigprocmask(SIG_BLOCK, &ss, &saved_ss) < 0)
-                        return log_full_errno(prio, errno, "Failed to block signal mask: %m");
+                        return log_debug_errno(errno, "Failed to block signal mask: %m");
                 saved_ssp = &saved_ss;
         }
 
-        if (FLAGS_SET(flags, FORK_DETACH)) {
-                /* Fork off intermediary child if needed */
-
-                r = is_reaper_process();
-                if (r < 0)
-                        return log_full_errno(prio, r, "Failed to determine if we are a reaper process: %m");
-
-                if (!r) {
-                        /* Not a reaper process, hence do a double fork() so we are reparented to one */
-
-                        if (ret && socketpair(AF_UNIX, SOCK_DGRAM|SOCK_CLOEXEC, 0, pidref_transport_fds) < 0)
-                                return log_full_errno(prio, errno, "Failed to allocate pidref socket: %m");
-
-                        pid = fork();
-                        if (pid < 0)
-                                return log_full_errno(prio, errno, "Failed to fork off '%s': %m", strna(name));
-                        if (pid > 0) {
-                                log_debug("Successfully forked off intermediary '%s' as PID " PID_FMT ".", strna(name), pid);
-
-                                pidref_transport_fds[1] = safe_close(pidref_transport_fds[1]);
-
-                                if (pidref_transport_fds[0] >= 0) {
-                                        /* Wait for the intermediary child to exit so the caller can be
-                                         * certain the actual child process has been reparented by the time
-                                         * this function returns. */
-                                        r = pidref_wait_for_terminate_and_check(
-                                                        name,
-                                                        &PIDREF_MAKE_FROM_PID(pid),
-                                                        FLAGS_SET(flags, FORK_LOG) ? WAIT_LOG : 0);
-                                        if (r < 0)
-                                                return log_full_errno(prio, r, "Failed to wait for intermediary process: %m");
-                                        if (r != EXIT_SUCCESS) /* exit status > 0 should be treated as failure, too */
-                                                return -EPROTO;
-
-                                        int pidfd;
-                                        ssize_t n = receive_one_fd_iov(
-                                                        pidref_transport_fds[0],
-                                                        &IOVEC_MAKE(&pid, sizeof(pid)),
-                                                        /* iovlen= */ 1,
-                                                        /* flags= */ 0,
-                                                        &pidfd);
-                                        if (n < 0)
-                                                return log_full_errno(prio, n, "Failed to receive child pidref: %m");
-
-                                        *ret = (PidRef) { .pid = pid, .fd = pidfd };
-                                }
-
-                                return 1; /* return in the parent */
-                        }
-
-                        pidref_transport_fds[0] = safe_close(pidref_transport_fds[0]);
-                        intermediary = true;
-                }
-        }
-
-        if ((flags & (FORK_NEW_MOUNTNS|FORK_NEW_USERNS|FORK_NEW_NETNS|FORK_NEW_PIDNS)) != 0)
-                pid = raw_clone(SIGCHLD|
-                                (FLAGS_SET(flags, FORK_NEW_MOUNTNS) ? CLONE_NEWNS : 0) |
-                                (FLAGS_SET(flags, FORK_NEW_USERNS) ? CLONE_NEWUSER : 0) |
-                                (FLAGS_SET(flags, FORK_NEW_NETNS) ? CLONE_NEWNET : 0) |
-                                (FLAGS_SET(flags, FORK_NEW_PIDNS) ? CLONE_NEWPID : 0));
-        else
-                pid = fork();
+        pid = fork();
         if (pid < 0)
-                return log_full_errno(prio, errno, "Failed to fork off '%s': %m", strna(name));
+                return log_debug_errno(errno, "Failed to fork off '%s': %m", strna(name));
         if (pid > 0) {
-
-                /* If we are in the intermediary process, exit now */
-                if (intermediary) {
-                        if (pidref_transport_fds[1] >= 0) {
-                                _cleanup_(pidref_done) PidRef pidref = PIDREF_NULL;
-
-                                r = pidref_set_pid(&pidref, pid);
-                                if (r < 0) {
-                                        log_full_errno(prio, r, "Failed to open reference to PID "PID_FMT": %m", pid);
-                                        _exit(EXIT_FAILURE);
-                                }
-
-                                r = send_one_fd_iov(
-                                                pidref_transport_fds[1],
-                                                pidref.fd,
-                                                &IOVEC_MAKE(&pidref.pid, sizeof(pidref.pid)),
-                                                /* iovlen= */ 1,
-                                                /* flags= */ 0);
-                                if (r < 0) {
-                                        log_full_errno(prio, r, "Failed to send child pidref: %m");
-                                        _exit(EXIT_FAILURE);
-                                }
-                        }
-
-                        _exit(EXIT_SUCCESS);
-                }
 
                 /* We are in the parent process */
                 log_debug("Successfully forked off '%s' as PID " PID_FMT ".", strna(name), pid);
@@ -536,8 +437,6 @@ int pidref_safe_fork_full(
 
         /* We are in the child process */
 
-        pidref_transport_fds[1] = safe_close(pidref_transport_fds[1]);
-
         /* Restore signal mask manually */
         saved_ssp = NULL;
 
@@ -551,8 +450,7 @@ int pidref_safe_fork_full(
         if (name) {
                 r = rename_process(name);
                 if (r < 0)
-                        log_full_errno(flags & FORK_LOG ? LOG_WARNING : LOG_DEBUG,
-                                       r, "Failed to rename process, ignoring: %m");
+                        log_debug_errno(r, "Failed to rename process, ignoring: %m");
         }
 
         /* let's disable dlopen() in the child, as a paranoia safety precaution: children should not live for
@@ -562,13 +460,12 @@ int pidref_safe_fork_full(
          * foreign environment. Note that this has no effect on NSS! (i.e. it only has effect on uses of our
          * dlopen_safe(), which we use comprehensively in our codebase, but glibc NSS doesn't bother, of
          * course.) */
-        if (!FLAGS_SET(flags, FORK_ALLOW_DLOPEN))
-                block_dlopen();
+        block_dlopen();
 
-        if (flags & (FORK_DEATHSIG_SIGTERM|FORK_DEATHSIG_SIGINT|FORK_DEATHSIG_SIGKILL)) {
+        if (flags & (FORK_DEATHSIG_SIGTERM|FORK_DEATHSIG_SIGKILL)) {
                 r = prctl_safe(PR_SET_PDEATHSIG, fork_flags_to_signal(flags), 0, 0, 0);
                 if (r < 0) {
-                        log_full_errno(prio, r, "Failed to set death signal: %m");
+                        log_debug_errno(r, "Failed to set death signal: %m");
                         _exit(EXIT_FAILURE);
                 }
         }
@@ -576,24 +473,24 @@ int pidref_safe_fork_full(
         if (flags & FORK_RESET_SIGNALS) {
                 r = reset_all_signal_handlers();
                 if (r < 0) {
-                        log_full_errno(prio, r, "Failed to reset signal handlers: %m");
+                        log_debug_errno(r, "Failed to reset signal handlers: %m");
                         _exit(EXIT_FAILURE);
                 }
 
                 /* This implicitly undoes the signal mask stuff we did before the fork()ing above */
                 r = reset_signal_mask();
                 if (r < 0) {
-                        log_full_errno(prio, r, "Failed to reset signal mask: %m");
+                        log_debug_errno(r, "Failed to reset signal mask: %m");
                         _exit(EXIT_FAILURE);
                 }
         } else if (block_signals) { /* undo what we did above */
                 if (sigprocmask(SIG_SETMASK, &saved_ss, NULL) < 0) {
-                        log_full_errno(prio, errno, "Failed to restore signal mask: %m");
+                        log_debug_errno(errno, "Failed to restore signal mask: %m");
                         _exit(EXIT_FAILURE);
                 }
         }
 
-        if (flags & (FORK_DEATHSIG_SIGTERM|FORK_DEATHSIG_SIGKILL|FORK_DEATHSIG_SIGINT)) {
+        if (flags & (FORK_DEATHSIG_SIGTERM|FORK_DEATHSIG_SIGKILL)) {
                 pid_t ppid;
                 /* Let's see if the parent PID is still the one we started from? If not, then the parent
                  * already died by the time we set PR_SET_PDEATHSIG, hence let's emulate the effect */
@@ -609,32 +506,11 @@ int pidref_safe_fork_full(
                 }
         }
 
-        if (FLAGS_SET(flags, FORK_NEW_MOUNTNS | FORK_MOUNTNS_SLAVE)) {
-                /* Optionally, make sure we never propagate mounts to the host. */
-                if (mount(NULL, "/", NULL, MS_SLAVE | MS_REC, NULL) < 0) {
-                        log_full_errno(prio, errno, "Failed to remount root directory as MS_SLAVE: %m");
-                        _exit(EXIT_FAILURE);
-                }
-        }
-
-        if (FLAGS_SET(flags, FORK_PRIVATE_TMP)) {
-                assert(FLAGS_SET(flags, FORK_NEW_MOUNTNS));
-
-                /* Optionally, overmount new tmpfs instance on /tmp/. */
-                r = mount_nofollow("tmpfs", "/tmp", "tmpfs",
-                                   MS_NOSUID|MS_NODEV,
-                                   "mode=01777" TMPFS_LIMITS_RUN);
-                if (r < 0) {
-                        log_full_errno(prio, r, "Failed to overmount /tmp/: %m");
-                        _exit(EXIT_FAILURE);
-                }
-        }
-
         if (flags & FORK_REARRANGE_STDIO) {
                 if (stdio_fds) {
                         r = rearrange_stdio(stdio_fds[0], stdio_fds[1], stdio_fds[2]);
                         if (r < 0) {
-                                log_full_errno(prio, r, "Failed to rearrange stdio fds: %m");
+                                log_debug_errno(r, "Failed to rearrange stdio fds: %m");
                                 _exit(EXIT_FAILURE);
                         }
 
@@ -643,14 +519,9 @@ int pidref_safe_fork_full(
                 } else {
                         r = make_null_stdio();
                         if (r < 0) {
-                                log_full_errno(prio, r, "Failed to connect stdin/stdout to /dev/null: %m");
+                                log_debug_errno(r, "Failed to connect stdin/stdout to /dev/null: %m");
                                 _exit(EXIT_FAILURE);
                         }
-                }
-        } else if (flags & FORK_STDOUT_TO_STDERR) {
-                if (dup2(STDERR_FILENO, STDOUT_FILENO) < 0) {
-                        log_full_errno(prio, errno, "Failed to connect stdout to stderr: %m");
-                        _exit(EXIT_FAILURE);
                 }
         }
 
@@ -660,7 +531,7 @@ int pidref_safe_fork_full(
 
                 r = close_all_fds(except_fds, n_except_fds);
                 if (r < 0) {
-                        log_full_errno(prio, r, "Failed to close all file descriptors: %m");
+                        log_debug_errno(r, "Failed to close all file descriptors: %m");
                         _exit(EXIT_FAILURE);
                 }
         }
@@ -673,7 +544,7 @@ int pidref_safe_fork_full(
 
                 r = pack_fds(except_fds, n_except_fds);
                 if (r < 0) {
-                        log_full_errno(prio, r, "Failed to pack file descriptors: %m");
+                        log_debug_errno(r, "Failed to pack file descriptors: %m");
                         _exit(EXIT_FAILURE);
                 }
         }
@@ -681,7 +552,7 @@ int pidref_safe_fork_full(
         if (flags & FORK_CLOEXEC_OFF) {
                 r = fd_cloexec_many(except_fds, n_except_fds, false);
                 if (r < 0) {
-                        log_full_errno(prio, r, "Failed to turn off O_CLOEXEC on file descriptors: %m");
+                        log_debug_errno(r, "Failed to turn off O_CLOEXEC on file descriptors: %m");
                         _exit(EXIT_FAILURE);
                 }
         }
@@ -695,26 +566,21 @@ int pidref_safe_fork_full(
         if (flags & FORK_RLIMIT_NOFILE_SAFE) {
                 r = rlimit_nofile_safe();
                 if (r < 0) {
-                        log_full_errno(prio, r, "Failed to lower RLIMIT_NOFILE's soft limit to 1K: %m");
+                        log_debug_errno(r, "Failed to lower RLIMIT_NOFILE's soft limit to 1K: %m");
                         _exit(EXIT_FAILURE);
                 }
         }
 
-        if (!FLAGS_SET(flags, FORK_KEEP_NOTIFY_SOCKET)) {
-                r = RET_NERRNO(unsetenv("NOTIFY_SOCKET"));
-                if (r < 0) {
-                        log_full_errno(prio, r, "Failed to unset $NOTIFY_SOCKET: %m");
-                        _exit(EXIT_FAILURE);
-                }
+        r = RET_NERRNO(unsetenv("NOTIFY_SOCKET"));
+        if (r < 0) {
+                log_debug_errno(r, "Failed to unset $NOTIFY_SOCKET: %m");
+                _exit(EXIT_FAILURE);
         }
-
-        if (FLAGS_SET(flags, FORK_FREEZE))
-                freeze();
 
         if (ret) {
                 r = pidref_set_self(ret);
                 if (r < 0) {
-                        log_full_errno(prio, r, "Failed to acquire PID reference on ourselves: %m");
+                        log_debug_errno(r, "Failed to acquire PID reference on ourselves: %m");
                         _exit(EXIT_FAILURE);
                 }
         }
@@ -737,7 +603,7 @@ int namespace_fork_full(
 
         _cleanup_(pidref_done_sigkill_wait) PidRef pidref_outer = PIDREF_NULL;
         _cleanup_close_pair_ int errno_pipe_fd[2] = EBADF_PAIR;
-        int r, prio = FLAGS_SET(flags, FORK_LOG) ? LOG_ERR : LOG_DEBUG;
+        int r;
 
         /* This is much like safe_fork(), but forks twice, and joins the specified namespaces in the middle
          * process. This ensures that we are fully a member of the destination namespace, with pidns an all, so that
@@ -748,14 +614,13 @@ int namespace_fork_full(
 
         /* Insist on PDEATHSIG being enabled, as the pid returned is the one of the middle man, and otherwise
          * killing of it won't be propagated to the inner child. */
-        assert((flags & (FORK_DEATHSIG_SIGKILL|FORK_DEATHSIG_SIGTERM|FORK_DEATHSIG_SIGINT)) != 0);
-        assert((flags & (FORK_DETACH|FORK_FREEZE)) == 0);
-        assert(!FLAGS_SET(flags, FORK_ALLOW_DLOPEN)); /* never allow loading shared library from another ns */
+        assert((flags & FORK_UNSUPPORTED) == 0);
+        assert((flags & (FORK_DEATHSIG_SIGKILL|FORK_DEATHSIG_SIGTERM)) != 0);
 
         /* We want read() to block as a synchronization point */
         assert_cc(sizeof(int) <= PIPE_BUF);
         if (pipe2(errno_pipe_fd, O_CLOEXEC) < 0)
-                return log_full_errno(prio, errno, "Failed to create pipe: %m");
+                return log_debug_errno(errno, "Failed to create pipe: %m");
 
         r = pidref_safe_fork_full(
                         outer_name,
@@ -780,7 +645,7 @@ int namespace_fork_full(
 
                 r = namespace_enter(pidns_fd, mntns_fd, netns_fd, userns_fd, root_fd);
                 if (r < 0) {
-                        log_full_errno(prio, r, "Failed to join namespace: %m");
+                        log_debug_errno(r, "Failed to join namespace: %m");
                         report_errno_and_exit(errno_pipe_fd[1], r);
                 }
 
@@ -838,27 +703,6 @@ int namespace_fork_full(
         return 1;
 }
 
-_noreturn_ void freeze(void) {
-        log_close();
-
-        /* Make sure nobody waits for us (i.e. on one of our sockets) anymore. Note that we use
-         * close_all_fds_without_malloc() instead of plain close_all_fds() here, since we want this function
-         * to be compatible with being called from signal handlers. */
-        (void) close_all_fds_without_malloc(NULL, 0);
-
-        /* Let's not freeze right away, but keep reaping zombies. */
-        for (;;) {
-                siginfo_t si = {};
-
-                if (waitid(P_ALL, 0, &si, WEXITED) < 0 && errno != EINTR)
-                        break;
-        }
-
-        /* waitid() failed with an ECHLD error (because there are no left-over child processes) or any other
-         * (unexpected) error. Freeze for good now! */
-        for (;;)
-                pause();
-}
 
 int get_process_threads(pid_t pid) {
         _cleanup_free_ char *t = NULL;
@@ -882,21 +726,6 @@ int get_process_threads(pid_t pid) {
         return n;
 }
 
-int is_reaper_process(void) {
-        int b = 0, r;
-
-        /* Checks if we are running in a reaper process, i.e. if we are expected to deal with processes
-         * reparented to us. This simply checks if we are PID 1 or if PR_SET_CHILD_SUBREAPER was called. */
-
-        if (getpid_cached() == 1)
-                return true;
-
-        r = prctl_safe(PR_GET_CHILD_SUBREAPER, (unsigned long) &b, 0, 0, 0);
-        if (r < 0)
-                return r;
-
-        return b != 0;
-}
 
 _noreturn_ void report_errno_and_exit(int errno_fd, int error) {
         int r;

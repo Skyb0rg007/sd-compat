@@ -43,10 +43,4 @@ static inline int fd_to_handle_u64(int fd, uint64_t *ret) {
 
 bool file_handle_equal(const struct file_handle *a, const struct file_handle *b);
 
-int mount_nofollow(
-                const char *source,
-                const char *target,
-                const char *filesystemtype,
-                unsigned long mountflags,
-                const void *data);
 

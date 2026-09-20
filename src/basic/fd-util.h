@@ -118,7 +118,6 @@ int fd_cloexec_many(const int fds[], size_t n_fds, bool cloexec);
 int get_max_fd(void);
 
 int close_all_fds(const int except[], size_t n_except);
-int close_all_fds_without_malloc(const int except[], size_t n_except);
 int close_all_fds_frugal(const int except[], size_t n_except);
 
 int pack_fds(int fds[], size_t n);

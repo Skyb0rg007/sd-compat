@@ -43,6 +43,9 @@ typedef enum WaitFlags {
         WAIT_LOG = WAIT_LOG_ABNORMAL|WAIT_LOG_NON_ZERO_EXIT_STATUS,
 } WaitFlags;
 
+/* Both call sites log at debug level only. */
+#define WAIT_UNSUPPORTED (WAIT_LOG_ABNORMAL|WAIT_LOG_NON_ZERO_EXIT_STATUS)
+
 int pidref_wait_for_terminate_and_check(const char *name, PidRef *pidref, WaitFlags flags);
 
 int getenv_for_pid(pid_t pid, const char *field, char **ret);
@@ -109,6 +112,25 @@ typedef enum ForkFlags {
         FORK_ALLOW_DLOPEN       = 1 << 23, /* Do not block dlopen() in child */
 } ForkFlags;
 
+/* Flags pidref_safe_fork_full() no longer implements. Note that FORK_KEEP_NOTIFY_SOCKET and
+ * FORK_ALLOW_DLOPEN were negated guards, so the child now unconditionally unsets $NOTIFY_SOCKET and
+ * blocks dlopen(); FORK_LOG only picked a log level, which is now always LOG_DEBUG. */
+#define FORK_UNSUPPORTED                        \
+        (FORK_DEATHSIG_SIGINT |                 \
+         FORK_LOG |                             \
+         FORK_MOUNTNS_SLAVE |                   \
+         FORK_PRIVATE_TMP |                     \
+         FORK_STDOUT_TO_STDERR |                \
+         FORK_FLUSH_STDIO |                     \
+         FORK_KEEP_NOTIFY_SOCKET |              \
+         FORK_DETACH |                          \
+         FORK_NEW_MOUNTNS |                     \
+         FORK_NEW_USERNS |                      \
+         FORK_NEW_NETNS |                       \
+         FORK_NEW_PIDNS |                       \
+         FORK_FREEZE |                          \
+         FORK_ALLOW_DLOPEN)
+
 int pidref_safe_fork_full(
                 const char *name,
                 const int stdio_fds[3],
@@ -162,11 +184,9 @@ static inline int namespace_fork(
 
 assert_cc(TASKS_MAX <= (unsigned long) PID_T_MAX);
 
-_noreturn_ void freeze(void);
 
 int get_process_threads(pid_t pid);
 
-int is_reaper_process(void);
 
 _noreturn_ void report_errno_and_exit(int errno_fd, int error);
 int read_errno(int errno_fd);
